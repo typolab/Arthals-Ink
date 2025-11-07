@@ -71,7 +71,7 @@ export const theme = {
     /** Enable displaying a “Astro & Pure theme powered” link in your site’s footer. */
     credits: false,
     /** Optional details about the social media accounts for this site. */
-    social: { github: 'https://github.com/CiZaii', email: 'mailto:zang@linux.do' }
+    social: { github: 'https://github.com', email: 'mailto:zang@linux.do' }
   },
 
   content: {
@@ -125,7 +125,7 @@ export const integ: IntegrationUserConfig = {
   waline: {
     enable: true,
     // Server service link
-    server: 'https://commit.wl.do',
+    server: 'https://admin.deepl.win',
     // Refer https://waline.js.org/en/guide/features/emoji.html
     emoji: ['bmoji', 'weibo'],
     // Refer https://waline.js.org/en/reference/client/props.html
