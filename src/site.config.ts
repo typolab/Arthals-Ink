@@ -71,7 +71,7 @@ export const theme = {
     /** Enable displaying a “Astro & Pure theme powered” link in your site’s footer. */
     credits: false,
     /** Optional details about the social media accounts for this site. */
-    social: { github: 'https://github.com', email: 'mailto:zang@linux.do' }
+    social: { github: 'https://github.com', email: 'mailto:admin@deepl.win' }
   },
 
   content: {
