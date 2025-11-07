@@ -7,12 +7,12 @@ import type { Config, IntegrationUserConfig, ThemeUserConfig } from 'astro-pure/
 export const theme = {
   // === Basic configuration ===
   /** Title for your website. Will be used in metadata and as browser tab title. */
-  title: "CiZai' ink",
+  title: "DeepL Lab",
   /** Will be used in index page & copyright declaration */
-  author: 'CiZai',
+  author: 'TypoNull',
   since: 2025,
   /** Description metadata for your website. Can be used in page metadata. */
-  description: '栀子比众木  人间诚未多',
+  description: '故国神游 多情应笑我',
   /** The default favicon for your site which should be a path to an image in the `public/` directory. */
   favicon: '/favicon/favicon.ico',
   /** Specify the default language for this site. */
