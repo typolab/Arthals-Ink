@@ -1,7 +1,7 @@
 ---
 import { Image } from 'astro:assets'
 
-import Signature from '../../../packages/pure/components/user/Signature.astro'
+import Signaturemax from '../../../packages/pure/components/user/Signaturemax.astro'
 import { Quote } from 'astro-pure/advanced'
 import { PostPreview } from 'astro-pure/components/pages'
 import { getBlogCollection, sortMDByDate } from 'astro-pure/server'
@@ -126,9 +126,10 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
           href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'
         />
       </Section> -->
-     { <Signature />}
+ 
 
     </div>
     <Quote class='mt-12' />
-  </main>
+  </main>  
+{ <Signaturemax />}
 </PageLayout>
