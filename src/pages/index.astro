@@ -7,13 +7,14 @@ import { PostPreview } from 'astro-pure/components/pages'
 import { getBlogCollection, sortMDByDate } from 'astro-pure/server'
 import { Button, Card, Icon, Label } from 'astro-pure/user'
 
+import Signaturemax from '../../packages/pure/components/user/Signaturemax.astro'     
 import PageLayout from '@/layouts/BaseLayout.astro'
 import ProjectCard from '@/components/home/ProjectCard.astro'
 import Section from '@/components/home/Section.astro'
 import SkillLayout from '@/components/home/SkillLayout.astro'
 import avatar from '@/assets/avatar.png'
 import config from '@/site-config'
-import Signaturemax from '../../packages/pure/components/user/Signaturemax.astro'     
+
 const webDevelopment = [
   'Vue.js',
   'Nuxt.js',
@@ -76,6 +77,8 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
 
 
 
+      < Signaturemax />
+
    
 
       {
@@ -133,7 +136,7 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
         />
       </Section> -->
  
-   <Signaturemax />
+
     </div>
     <Quote class='mt-12' />   
 
