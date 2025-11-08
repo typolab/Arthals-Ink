@@ -130,7 +130,17 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
  
 
     </div>
-    <Quote class='mt-12' />     { <Signaturemax />}
+    <Quote class='mt-12' />   
+
+<!-- 安全包裹 Signaturemax -->
+<div class="signature-wrapper-container isolate" style="isolation:isolate; all:unset;">
+  <div style="all:initial; display:block;">
+    <Signaturemax />
+  </div>
+</div>
+
+
+
   </main>  
 
 </PageLayout>
