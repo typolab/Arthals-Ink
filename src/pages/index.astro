@@ -75,13 +75,8 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
       </Section>
 
 
-   <!-- 使用隔离容器包裹 Signaturemax -->
-  <div class="isolate">
-    <div class="[all:initial] block">
-      <Signaturemax />
-    </div>
-  </div>
 
+   
 
       {
         allPostsByDate.length > 0 && (
@@ -143,36 +138,6 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
     <Quote class='mt-12' />   
 
 
-<!-- 隔离 Signaturemax，防止污染全局 SVG 样式 -->
-<div id="signature-wrapper" class="mt-8 w-fit self-end"></div>
-
-<script>
-  // 动态加载 Signaturemax 到 Shadow DOM，完全隔离样式作用域
-  document.addEventListener('DOMContentLoaded', async () => {
-    const container = document.getElementById('signature-wrapper')
-    if (!container) return
-
-    // 创建 Shadow DOM
-    const shadow = container.attachShadow({ mode: 'open' })
-
-    // 动态加载组件文件
-    const module = await import('../../packages/pure/components/user/Signaturemax.astro')
-
-    // 渲染组件为 HTML 字符串（在 Astro 中组件可通过 render() 调用）
-    const { html } = await module.default.render()
-
-    // 注入组件 HTML 到 Shadow DOM
-    shadow.innerHTML = `
-      <style>
-        :host {
-          display: block;
-          all: initial;
-        }
-      </style>
-      ${html}
-    `
-  })
-</script>
 
 
 
