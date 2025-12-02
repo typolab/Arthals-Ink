@@ -14,4 +14,38 @@ slug: SOTA
 ## 🛠️ Hypergraph Neural Networks 
 
 
+
+
+## 补在最后
+由于写这篇.md文档是直接在GitHub提交的
+要经由Vercel上传
+遇到了几次报错
+第一次直接在GitHub编译日志
+
+遇到的问题
+
+```bash
+---
+title: Paper-Hypergraph Neural Networks
+description: xxx
+publishDate: 2025-12-01
+updatedDate: 2025-12-02
+tags:
+  - AAAI_2019
+  - hypergraph_neural_networks(HGNN)
+language: 中文
+slug: SOTA
+---
+```
+
+以上是标题以及正文以上的内容格式
+格式在 src/content.config.ts 文件中
+Vercel报错的几次原因
+1. publishDate 格式错误  正确格式应该是 2000-01-01 00:00
+2. tags 必须要连起来 不能有空格
+3. description 原 src/content.config.ts 配置文件中  description: z.string().max(160) 最大值只有160
+   改成1600 就解决问题了
+
+The End.
+
 arxiv：https://arxiv.org/abs/1809.09401
