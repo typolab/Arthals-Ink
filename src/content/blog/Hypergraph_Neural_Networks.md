@@ -6,9 +6,8 @@ description: In this paper, we present a hypergraph neural networks (HGNN) frame
 publishDate: 2025-12-01
 updatedDate: 2025-12-02
 tags:
-  - AAAI 2019
-  - hypergraph neural networks (HGNN)
-  - Node Anomaly Detection (NAD)
+  - AAAI_2019
+  - hypergraph_neural_networks(HGNN)
 language: 中文
 slug: SOTA
 ---
