@@ -6,7 +6,9 @@ import PageLayout from '@/layouts/CommonPage.astro'
 import ProjectSection from '@/components/projects/ProjectSection.astro'
 import Sponsors from '@/components/projects/Sponsors.astro'
 import Sponsorship from '@/components/projects/Sponsorship.astro'
-
+import alipay from '@/assets/alipay-qrcode1.jpg'
+import KeyIcon from '@/assets/icons/key.svg'
+import wechat from '@/assets/wechat-qrcode1.jpg'
 
 const headings = [
   { depth: 2, slug: 'theme', text: 'Theme' },
@@ -112,7 +114,7 @@ const headings = [
   /> -->
 
   <!-- gpg signature -->
-<!-- 
+
   <h2 id='gpg-signature'>GPG Signature</h2>
   <p>
     你可以通过检查 GPG 签名来验证我签名的文件的真实性。我的 GPG 密钥是 <code
@@ -126,7 +128,7 @@ const headings = [
   >
     <KeyIcon class='size-5' slot='before' />
   </Button>
--->
+
   <!-- sponsorship -->
   <h2 id='sponsorship'>赞赏</h2>
   <p>感谢您的赞赏，您的支持是我最大的动力。</p>
