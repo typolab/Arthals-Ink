@@ -9,7 +9,7 @@ tags:
   - AAAI_2019
   - hypergraph_neural_networks(HGNN)
 language: 中文
-slug: SOTA
+slug: Hypergraph
 ---
 ## 🛠️ Hypergraph Neural Networks 
 
