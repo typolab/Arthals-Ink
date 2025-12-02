@@ -17,7 +17,7 @@ const blog = defineCollection({
     z.object({
       // Required
       title: z.string().max(60),
-      description: z.string().max(160),
+      description: z.string().max(1600),
       publishDate: z.coerce.date(),
       // Optional
       updatedDate: z.coerce.date().optional(),
