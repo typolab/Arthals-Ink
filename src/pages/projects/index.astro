@@ -1,53 +1,175 @@
 ---
-import { PostPreview } from 'astro-pure/components/pages'
-import { getBlogCollection, groupCollectionsByYear, sortMDByDate } from 'astro-pure/server'
-import { Button } from 'astro-pure/user'
-import PageLayout from '@/layouts/BaseLayout.astro'
+import { Image } from 'astro:assets'
 
-export const prerender = true
+import { Button, Collapse, Icon } from 'astro-pure/user'
+import PageLayout from '@/layouts/CommonPage.astro'
+import ProjectSection from '@/components/projects/ProjectSection.astro'
+import Sponsors from '@/components/projects/Sponsors.astro'
+import Sponsorship from '@/components/projects/Sponsorship.astro'
+import alipay from '@/assets/alipay-qrcode.jpg'
+import KeyIcon from '@/assets/icons/key.svg'
+import wechat from '@/assets/wechat-qrcode.jpg'
 
-const allPosts = await getBlogCollection()
-const allPostsByDate = sortMDByDate(allPosts)
-const allPostsByYear = groupCollectionsByYear(allPostsByDate)
-
-const meta = {
-  description: '按年份归档的所有文章列表',
-  title: '归档'
-}
+const headings = [
+  { depth: 2, slug: 'theme', text: 'Theme' },
+  { depth: 2, slug: 'programs', text: 'Programs' },
+  { depth: 2, slug: 'learnings', text: 'Learnings' },
+  // { depth: 2, slug: 'others', text: 'Others' },
+  { depth: 2, slug: 'gpg-signature', text: 'GPG Signature' },
+  { depth: 2, slug: 'sponsorship', text: 'Sponsorship' }
+]
 ---
 
-<PageLayout {meta}>
-  <Button title='返回' href='/blog' variant='back' />
+<PageLayout title='Projects' {headings} view>
+  <p>如果你认为我的工作很有用或有趣，您可以捐赠以支持我的工作，或联系我讨论项目。</p>
+  <Button title='赞赏我的工作' class='w-fit' href='#sponsorship'>
+    <Icon class='size-5' name='receive-money' slot='before' />
+  </Button>
 
-  <main class='mt-8 lg:mt-10'>
-    <div id='content-header' class='animate'>
-      <h1 class='mb-6 text-3xl font-medium'>归档</h1>
-    </div>
-
-    {allPosts.length === 0 && <p>暂无文章。</p>}
-
-    <section id='content' class='animate' aria-label='Blog post list'>
+  <h2 id='theme'>Theme</h2>
+  <ProjectSection
+    projects={[
       {
-        allPostsByYear.map(([year, posts]) => (
-          <div class='relative mt-20 overflow-hidden'>
-            <h2
-              class='absolute -start-2 -top-12 z-0 text-7xl font-bold text-transparent opacity-10 md:-start-6 md:-top-16 md:text-9xl'
-              style='-webkit-text-stroke-width:2px;-webkit-text-stroke-color:hsl(var(--foreground)/var(--un-text-opacity))'
-            >
-              <samp>{year}</samp>
-            </h2>
-            <p class='px-5 text-muted-foreground'>
-              {posts.length} post{posts.length > 1 && 's'}
-            </p>
-            <ul class='flex flex-col text-start'>
-              {posts.map((p) => (
-                <PostPreview post={p} class='border-0 bg-transparent py-2' />
-              ))}
-            </ul>
-          </div>
-        ))
+        name: '🍭 Astro-theme-pure',
+        description: 'A simple, clean but powerful blog theme build by astro.',
+        links: [
+          { type: 'github', href: 'https://github.com/cworld1/astro-theme-pure' },
+          { type: 'site', href: 'https://github.com/cworld1/astro-theme-pure' },
+          {
+            type: 'doc',
+            href: 'https://github.com/cworld1/astro-theme-pure/blob/main/src/content/blog/customize/index.md'
+          }
+        ]
+      },
+      {
+        // https://github.com/zhuozhiyongde/VSCode-Markdown-Theme
+        //name: '🌈 VSCode Markdown Theme',
+        //description: 'A markdown theme for VSCode.',
+        //links: [{ type: 'github', href: 'https://github.com/zhuozhiyongde/VSCode-Markdown-Theme' }]
       }
-    </section>
-  </main>
+    ]}
+  />
+
+  <h2 id='programs'>Programs</h2>
+  <ProjectSection
+    projects={[
+      {
+        name: 'Continue...',
+        description: 'Continue...',
+        links: [
+          { type: 'site', href: 'https://devifys.com' },
+          { type: 'github', href: 'https://github.com/' },
+          { type: 'doc', href: 'https://devifys.com' }
+        ]
+      }
+    ]}
+  />
+  <!-- <Collapse title='Some old projects'>
+    <ProjectSection
+      projects={[
+        {
+          name: 'Search Switcher',
+          description: 'Add links to each other in search engines',
+          links: [{ type: 'github', href: 'https://github.com/cworld1/search-switcher' }]
+        },
+        {
+          name: 'Pure Baidu',
+          description: 'Baidu search page beautification module',
+          links: [
+            { type: 'doc', href: 'https://cworld0.com/blog/pure-baidu' },
+            { type: 'site', href: 'https://userstyles.org/styles/173673/pure' }
+          ]
+        }
+      ]}
+    />
+  </Collapse> -->
+
+  <h2 id='learnings'>Learnings</h2>
+  <ProjectSection
+    class='my-2'
+    projects={[
+      {
+        name: 'Continue ...',
+        description: 'COntinue ...',
+        links: [
+          {
+            type: 'github',
+            href: 'https://github.com/'
+          }
+        ]
+      },
+      
+    ]}
+  />
+
+  <!-- <h2 id='others'>Others</h2>
+  <ProjectSection
+    projects={[
+      {
+        name: 'CWorld',
+        description: "CWorld's Github",
+        links: [{ type: 'github', href: 'https://github.com/cworld1' }]
+      },
+      {
+        name: 'Sota',
+        description: 'Sota Github',
+        links: [{ type: 'github', href: 'https://github.com/' }]
+      }
+    ]}
+  /> -->
+
+  <!-- gpg signature -->
+<!-- 
+  <h2 id='gpg-signature'>GPG Signature</h2>
+  <p>
+    你可以通过检查 GPG 签名来验证我签名的文件的真实性。我的 GPG 密钥是 <code
+      >43AAB8A483D43DFFAFD7C8C8DAAAA2D31BB0250E</code
+    >，你可以在 openpgp 密钥服务器上找到它或从那里下载。
+  </p>
+  <Button
+    href='https://keys.openpgp.org/search?q=43AAB8A483D43DFFAFD7C8C8DAAAA2D31BB0250E'
+    title='验证密钥'
+    target='_blank'
+  >
+    <KeyIcon class='size-5' slot='before' />
+  </Button>
+-->
+  <!-- sponsorship -->
+  <h2 id='sponsorship'>赞赏</h2>
+  <p>感谢您的赞赏，您的支持是我最大的动力。</p>
+  <Sponsorship
+    methods={[
+      { name: 'WeChat', icon: 'wechat-pay', image: wechat },
+      { name: 'Alipay', icon: 'alipay', image: alipay }
+    ]}
+  />
+  <!-- <p>Thanks to the following sponsors:</p>
+  <Sponsors
+    sponsors={[
+      { name: 'C*a（酷安@暴走の蜗牛）', amount: '2.00', date: '2019-07-02' },
+      { name: '华雄(QQ：1300****71)', amount: '5.00', date: '2019-12-30' },
+      { name: '◌(QQ：1934****45)', amount: '3.00', date: '2019-12-30' },
+      { name: 'Anonymous', amount: '20.00', date: '2022-04-06' }
+    ]}
+  /> -->
 </PageLayout>
 
+<style>
+  .sponsorship-card {
+    & .sponsorship-card-img {
+      opacity: 0.3;
+      --un-blur: blur(4px);
+      filter: var(--un-blur);
+    }
+
+    &:hover {
+      & .sponsorship-card-icon {
+        opacity: 0;
+      }
+      & .sponsorship-card-img {
+        opacity: 1;
+        --un-blur: blur(0);
+      }
+    }
+  }
+</style>
