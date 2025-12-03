@@ -19,12 +19,18 @@ export const theme = {
     locale: {
   lang: 'en-US',
   attrs: 'en_US',
-  dateLocale: 'en-US', // 或 zh-CN，随你
-  dateOptions: {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  }
+dateLocale: 'zh-CN',
+dateOptions: {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false
+}
+
 }
 ,
 
