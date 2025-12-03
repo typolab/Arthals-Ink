@@ -17,6 +17,10 @@ const {
 const dateTimeOptions: Intl.DateTimeFormatOptions = {
   month: 'short'
 }
+
+const displayDate = updatedDate ?? publishDate
+const hasDisplayDate = displayDate instanceof Date && !Number.isNaN(displayDate.getTime())
+const hasUpdatedDate = updatedDate instanceof Date && !Number.isNaN(updatedDate.getTime())
 ---
 
 {
@@ -48,28 +52,34 @@ const dateTimeOptions: Intl.DateTimeFormatOptions = {
     {/* Article date */}
     <div class='flex items-center gap-1'>
       <Icon name='calendar' class='size-5' />
-      <FormattedDate class='font-sans' date={publishDate} dateTimeOptions={dateTimeOptions} />
-      {
-        updatedDate && (
-          <div class='flex items-center gap-1'>
-            <span> / </span>
-            <span>
-              Update
-              <FormattedDate
-                class='font-sans'
-                date={updatedDate}
-                dateTimeOptions={dateTimeOptions}
-              />
-            </span>
-          </div>
-        )
-      }
+
+      {hasDisplayDate ? (
+        <FormattedDate class='font-sans' date={displayDate} dateTimeOptions={dateTimeOptions} />
+      ) : (
+        <span class='font-sans'>—</span>
+      )}
+
+      {hasUpdatedDate && (
+        <div class='flex items-center gap-1'>
+          <span> / </span>
+          <span>
+            Update
+            <FormattedDate
+              class='font-sans'
+              date={updatedDate}
+              dateTimeOptions={dateTimeOptions}
+            />
+          </span>
+        </div>
+      )}
     </div>
+
     {/* Times read */}
     <div class='flex items-center gap-1'>
       <Icon name='time' class='size-5' />
       {remarkPluginFrontmatter.minutesRead}
     </div>
+
     {
       // Language
       language && (
@@ -79,6 +89,7 @@ const dateTimeOptions: Intl.DateTimeFormatOptions = {
         </span>
       )
     }
+
     {
       // Tags
       !!tags?.length && (
