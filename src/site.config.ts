@@ -21,7 +21,7 @@ export const theme = {
     attrs: 'en_US',
 
     // ✅ 显示用中文/北京时间（你也可以改回 en-US）
-    dateLocale: 'zh-CN',
+    dateLocale: 'en_US',
 
     // ✅ 默认显示：YYYY/MM/DD HH:mm（由 locale 决定分隔符）
     dateOptions: {
