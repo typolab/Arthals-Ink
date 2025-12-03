@@ -17,8 +17,8 @@ const blog = defineCollection({
     z.object({
       // Required
       title: z.string().max(60),
-      description: z.string().max(160),
-      publishDate: z.coerce.date(),
+      description: z.string().max(1600),
+      publishDate: z.coerce.date().default(() => new Date()), //设置默认当前时间
       // Optional
       updatedDate: z.coerce.date().optional(),
       heroImage: z
@@ -48,8 +48,8 @@ const docs = defineCollection({
   schema: () =>
     z.object({
       title: z.string().max(60),
-      description: z.string().max(160),
-      publishDate: z.coerce.date().optional(),
+      description: z.string().max(1600),
+      publishDate: z.coerce.date().default(() => new Date()),
       updatedDate: z.coerce.date().optional(),
       tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
       draft: z.boolean().default(false),
