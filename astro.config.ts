@@ -31,7 +31,7 @@ import config from './src/site.config.ts'
 // https://astro.build/config
 export default defineConfig({
   // Top-Level Options
-  site: 'https://deepl.win',
+  site: 'https://blog.deepl.win',
   // base: '/docs',
   trailingSlash: 'never',
 
@@ -73,7 +73,7 @@ export default defineConfig({
   // Server Options
   server: {
     host: true,
-    allowedHosts: ['deepl.win']
+    allowedHosts: ['blog.deepl.win']
   },
   // Markdown Options
   markdown: {
