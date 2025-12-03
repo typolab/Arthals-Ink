@@ -17,24 +17,16 @@ export const theme = {
   favicon: '/favicon/favicon.ico',
   /** Specify the default language for this site. */
     locale: {
-    lang: 'en-US',
-    attrs: 'en_US',
-
-    // ✅ 显示用中文/北京时间（你也可以改回 en-US）
-    dateLocale: 'en_US',
-
-    // ✅ 默认显示：YYYY/MM/DD HH:mm（由 locale 决定分隔符）
-    dateOptions: {
-      timeZone: 'Asia/Shanghai',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-      // second: '2-digit', // 想显示秒就打开
-    }
-  },
+  lang: 'en-US',
+  attrs: 'en_US',
+  dateLocale: 'en-US', // 或 zh-CN，随你
+  dateOptions: {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }
+}
+,
 
   /** Set a logo image to show in the homepage. */
   logo: {
