@@ -1,4 +1,4 @@
-<img width="496" height="130" alt="image" src="https://github.com/user-attachments/assets/616727f0-2881-412f-8e02-4eda4e98cb98" />
+
 ---
 title: Signature Question
 description: Display a problem with worry signature. The solution of the question.
@@ -15,7 +15,7 @@ slug: Worry_Signature
 icon粗体化的问题
 
 问题展示：
-
+<img width="496" height="130" alt="image" src="https://github.com/user-attachments/assets/616727f0-2881-412f-8e02-4eda4e98cb98" />
 
 ```bash
 <?xml version="1.0" encoding="utf-8"?> <svg enable-background="new 0 0 1024 224" fill="none" height="auto" id="Layer_1" version="1.1" viewBox="33 -80 969 386" width="100%" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px"><style> path { stroke: black; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; opacity: 1; } </style> <path.   ...
