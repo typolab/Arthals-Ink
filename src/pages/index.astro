@@ -154,3 +154,23 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
 
 
 </PageLayout>
+
+<style>
+  /* 只在当前页面生效的全局样式 */
+  /* 1. 把导航里的图标选出来（把 .nav-icon 换成你实际的 class） */
+  :global(header .nav-icon) {
+    /* 2. 把被 Signaturemax 改坏的属性改回去 */
+
+    /* 如果是 Material Symbols 字体图标，通常是这一条被改了： */
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+
+    /* 如果是 SVG 图标变成实心，可以用下面几条（按实际情况选用/删减） */
+    /* fill: none;
+       stroke: currentColor;
+       stroke-width: 1.5; */
+  }
+</style>
