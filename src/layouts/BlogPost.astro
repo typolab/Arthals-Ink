@@ -45,8 +45,25 @@ const socialImage = heroImage
     : heroImage.src.src
   : '/images/social-card.png'
 
+// meta 用：优先 updated，否则 publish
 const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString()
 const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-text-opacity))'
+
+// ✅ 详情页展示两条时间：updatedDate 没填则等于 publishDate（你要求的还原逻辑）
+const publish = publishDate
+const update = updatedDate ?? publishDate
+
+// ✅ 展示格式：沿用你 theme 里的 config.locale.dateOptions，并补上时间
+const dateTimeOptions: Intl.DateTimeFormatOptions = {
+  ...(config.locale.dateOptions as Intl.DateTimeFormatOptions),
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+}
+
+const fmt = new Intl.DateTimeFormat(config.locale.dateLocale, dateTimeOptions)
+const publishText = fmt.format(publish)
+const updateText = fmt.format(update)
 ---
 
 <PageLayout
@@ -58,6 +75,18 @@ const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-tex
 
   <Hero {data} {remarkPluginFrontmatter} slot='header'>
     <Fragment slot='description'>
+      {/* ✅ 文章详情页：显示 Publish / Update 两行 */}
+      <div class="mt-2 text-xs text-muted-foreground space-y-1">
+        <div>
+          Publish：
+          <time datetime={publish.toISOString()}>{publishText}</time>
+        </div>
+        <div>
+          Update：
+          <time datetime={update.toISOString()}>{updateText}</time>
+        </div>
+      </div>
+
       {!isDraft && enableComment && <PageInfo comment class='mt-1' />}
     </Fragment>
   </Hero>
@@ -65,6 +94,7 @@ const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-tex
   <slot />
 
   {config.signature && <Signature />}
+
   <Fragment slot='bottom'>
     {/* Copyright */}
     <Copyright {data} />
