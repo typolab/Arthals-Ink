@@ -22,10 +22,10 @@ const blog = defineCollection({
       description: z.string().max(1600),
 
       // ✅ 允许不填，由 GitHub Action 首次写入并固定
-      publishDate: optionalDate,
+      // blog
+publishDate: z.coerce.date(),
+updatedDate: z.coerce.date().optional(),
 
-      // ✅ 允许不填，由 GitHub Action 每次提交更新
-      updatedDate: optionalDate,
 
       heroImage: z
         .object({
@@ -55,8 +55,8 @@ const docs = defineCollection({
       description: z.string().max(1600),
 
       // docs 也允许不填（避免构建失败）
-      publishDate: optionalDate,
-      updatedDate: optionalDate,
+     publishDate: z.coerce.date().optional(),
+updatedDate: z.coerce.date().optional(),
 
       tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
       draft: z.boolean().default(false),
