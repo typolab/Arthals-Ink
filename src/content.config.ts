@@ -7,6 +7,7 @@ function removeDupsAndLowerCase(array: string[]) {
   return Array.from(new Set(lowercaseItems));
 }
 
+
 const blog = defineCollection({
   loader: glob({ base: "./src/content/blog", pattern: "**/*.{md,mdx}" }),
   schema: ({ image }) =>
