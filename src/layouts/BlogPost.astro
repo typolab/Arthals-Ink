@@ -45,25 +45,31 @@ const socialImage = heroImage
     : heroImage.src.src
   : '/images/social-card.png'
 
-// meta 用：优先 updated，否则 publish
+// meta 用：更新时间优先，否则发布时间
 const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString()
 const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-text-opacity))'
 
-// ✅ 详情页展示两条时间：updatedDate 没填则等于 publishDate（你要求的还原逻辑）
+// ✅ 仅详情页显示“具体时间（北京时间）”
 const publish = publishDate
 const update = updatedDate ?? publishDate
 
-// ✅ 展示格式：沿用你 theme 里的 config.locale.dateOptions，并补上时间
-const dateTimeOptions: Intl.DateTimeFormatOptions = {
-  ...(config.locale.dateOptions as Intl.DateTimeFormatOptions),
+const fmtBJTime = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hour12: false
-}
+})
 
-const fmt = new Intl.DateTimeFormat(config.locale.dateLocale, dateTimeOptions)
-const publishText = fmt.format(publish)
-const updateText = fmt.format(update)
+const publishText = fmtBJTime.format(publish)
+const updateText = fmtBJTime.format(update)
+
+// 如果你不想 update 永远显示（当它等于 publish 时），用这个开关：
+// const showUpdate = !!updatedDate && updatedDate.getTime() !== publishDate.getTime()
+const showUpdate = true
 ---
 
 <PageLayout
@@ -75,16 +81,18 @@ const updateText = fmt.format(update)
 
   <Hero {data} {remarkPluginFrontmatter} slot='header'>
     <Fragment slot='description'>
-      {/* ✅ 文章详情页：显示 Publish / Update 两行 */}
       <div class="mt-2 text-xs text-muted-foreground space-y-1">
         <div>
           Publish：
           <time datetime={publish.toISOString()}>{publishText}</time>
         </div>
-        <div>
-          Update：
-          <time datetime={update.toISOString()}>{updateText}</time>
-        </div>
+
+        {showUpdate && (
+          <div>
+            Update：
+            <time datetime={update.toISOString()}>{updateText}</time>
+          </div>
+        )}
       </div>
 
       {!isDraft && enableComment && <PageInfo comment class='mt-1' />}
