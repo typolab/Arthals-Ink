@@ -54,7 +54,7 @@ export const theme = {
     menu: [
       { title: 'Blog', link: '/blog' },
       { title: 'Articles', link: '/articles' },
-      { title: 'Archive', link: '/projects' },
+      { title: 'Projects', link: '/projects' },
       { title: 'About', link: '/about' }
     ]
   },
