@@ -39,17 +39,21 @@ const blog = defineCollection({
 });
 
 const docs = defineCollection({
-  loader: glob({ base: "./src/content/docs", pattern: "**/*.{md,mdx}" }),
+  loader: glob({ base: './src/content/docs', pattern: '**/*.{md,mdx}' }),
   schema: () =>
     z.object({
       title: z.string().max(60),
       description: z.string().max(1600),
-      publishDate: z.coerce.date(),
+
+      // ✅ docs 不强制
+      publishDate: z.coerce.date().optional(),
       updatedDate: z.coerce.date().optional(),
+
       tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
       draft: z.boolean().default(false),
       order: z.number().default(999),
     }),
-});
+})
+;
 
 export const collections = { blog, docs };
