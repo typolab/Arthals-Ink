@@ -48,7 +48,7 @@ const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString()
 const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-text-opacity))'
 const displayDate = updatedDate ?? publishDate
 
-const displayDateTimeBJ = new Intl.DateTimeFormat('zh-CN', {
+const fmtBJ = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai',
   year: 'numeric',
   month: '2-digit',
@@ -56,7 +56,11 @@ const displayDateTimeBJ = new Intl.DateTimeFormat('zh-CN', {
   hour: '2-digit',
   minute: '2-digit',
   hour12: false
-}).format(displayDate)
+})
+
+const publishDateBJ = fmtBJ.format(publishDate)
+const updatedDateBJ = updatedDate ? fmtBJ.format(updatedDate) : null
+
 
 ---
 
