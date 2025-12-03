@@ -1,4 +1,4 @@
-name: Stamp publishDate once
+name: Stamp blog publish/updated dates from git
 
 on:
   workflow_dispatch:
@@ -18,56 +18,74 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Stamp publishDate into frontmatter (once)
+      - name: Stamp publishDate (first commit) + updatedDate (last commit)
         shell: bash
         run: |
           set -euo pipefail
+          shopt -s globstar nullglob
 
-          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- \
-            "src/content/blog/**/*.md" "src/content/blog/**/*.mdx" || true)
-
-          if [ -z "$CHANGED" ]; then
-            echo "No changed blog posts."
+          files=(src/content/blog/**/*.md src/content/blog/**/*.mdx)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No blog posts found."
             exit 0
           fi
 
-          for FILE in $CHANGED; do
-            echo "Processing $FILE"
+          for file in "${files[@]}"; do
+            echo "Processing $file"
 
-            # 没有 frontmatter 就加一个
-            if ! head -n 1 "$FILE" | grep -q '^---$'; then
-              tmp=$(mktemp)
-              {
-                echo "---"
-                echo "publishDate: $NOW"
-                echo "---"
-                cat "$FILE"
-              } > "$tmp"
-              mv "$tmp" "$FILE"
+            # 取第一次提交时间（文件首次出现）
+            first=$(git log --follow --diff-filter=A --format=%cI -- "$file" | tail -n 1 || true)
+            # 取最后一次提交时间
+            last=$(git log -1 --format=%cI -- "$file" || true)
+
+            # 如果文件还没进 git 历史（极少数情况），跳过
+            if [ -z "${first:-}" ] || [ -z "${last:-}" ]; then
+              echo "No git history for $file, skip."
               continue
             fi
 
-            # frontmatter 内已存在 publishDate 就跳过（只写一次）
-            if awk '
+            # 如果没有 frontmatter，创建
+            if ! head -n 1 "$file" | grep -q '^---$'; then
+              tmp=$(mktemp)
+              {
+                echo "---"
+                echo "publishDate: $first"
+                echo "updatedDate: $last"
+                echo "---"
+                cat "$file"
+              } > "$tmp"
+              mv "$tmp" "$file"
+              continue
+            fi
+
+            # publishDate 只在缺失时写入
+            if ! awk '
               NR==1 {in=($0=="---"); next}
               in==1 && $0=="---" {exit 0}
               in==1 && $0 ~ /^publishDate:/ {found=1}
               END {exit(found?0:1)}
-            ' "$FILE"; then
-              echo "publishDate exists, skip."
-              continue
+            ' "$file"; then
+              tmp=$(mktemp)
+              awk -v first="$first" '
+                NR==1 {print; in=1; next}
+                in==1 && $0=="---" {print "publishDate: " first; print; in=0; next}
+                {print}
+              ' "$file" > "$tmp"
+              mv "$tmp" "$file"
             fi
 
-            # 在 frontmatter 结束 --- 之前插入 publishDate
-            tmp=$(mktemp)
-            awk -v now="$NOW" '
-              NR==1 {print; in=1; next}
-              in==1 && $0=="---" {print "publishDate: " now; print; in=0; next}
-              {print}
-            ' "$FILE" > "$tmp"
-            mv "$tmp" "$FILE"
+            # updatedDate 每次都同步为最后一次提交时间（存在就替换，不存在就插入）
+            if grep -q '^updatedDate:' "$file"; then
+              sed -i "s/^updatedDate:.*/updatedDate: $last/" "$file"
+            else
+              tmp=$(mktemp)
+              awk -v last="$last" '
+                NR==1 {print; in=1; next}
+                in==1 && $0=="---" {print "updatedDate: " last; print; in=0; next}
+                {print}
+              ' "$file" > "$tmp"
+              mv "$tmp" "$file"
+            fi
           done
 
       - name: Commit changes (if any)
@@ -75,6 +93,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "chore: stamp publishDate"
+          git diff --cached --quiet || git commit -m "chore: sync blog publishDate/updatedDate from git"
           git push
-          
