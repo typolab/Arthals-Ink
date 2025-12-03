@@ -17,7 +17,10 @@ const { as: Tag = 'div', post, detailed = false, class: className } = Astro.prop
 const { id, data } = post
 
 const { remarkPluginFrontmatter } = await render(post)
-const postDate = data.updatedDate ?? data.publishDate
+
+// ✅ 两个时间都准备好
+const publishDate = data.publishDate
+const updatedDate = data.updatedDate ?? data.publishDate
 
 // Use custom slug if available, otherwise use the default id
 const postSlug = (data as any).slug || id
@@ -54,7 +57,17 @@ const postSlug = (data as any).slug || id
       )
     }
 
-    <FormattedDate class='min-w-[95px] py-1 text-xs' date={postDate} />
+    {/* ✅ 博客列表显示两行时间 */}
+    <div class="min-w-[130px] py-1 text-xs text-muted-foreground leading-4">
+      <div class="flex items-center gap-1">
+        <span class="opacity-80">Pub</span>
+        <FormattedDate class='font-mono' date={publishDate} />
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="opacity-80">Upd</span>
+        <FormattedDate class='font-mono' date={updatedDate} />
+      </div>
+    </div>
 
     <Tag class='z-10 flex-grow'>
       {/* title */}
@@ -85,6 +98,7 @@ const postSlug = (data as any).slug || id
           ></polyline></svg
         >
       </div>
+
       {
         detailed && (
           <>
@@ -116,6 +130,7 @@ const postSlug = (data as any).slug || id
       }
     </Tag>
   </a>
+
   <!-- tags -->
   {
     detailed && data.tags && (
@@ -164,14 +179,4 @@ const postSlug = (data as any).slug || id
   }
 
   @media (max-width: 768px) {
-    .cover-image {
-      mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%);
-      -ms-mask-image: -ms-linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 1) 100%);
-      -webkit-mask-image: -webkit-linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 1) 100%
-      );
-    }
-  }
-</style>
+    .cov
