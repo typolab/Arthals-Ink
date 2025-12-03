@@ -18,6 +18,8 @@ const { id, data } = post
 
 const { remarkPluginFrontmatter } = await render(post)
 const postDate = data.updatedDate ?? data.publishDate
+const hasDate = postDate instanceof Date && !Number.isNaN(postDate.getTime())
+
 
 // Use custom slug if available, otherwise use the default id
 const postSlug = (data as any).slug || id
@@ -55,19 +57,12 @@ const postSlug = (data as any).slug || id
     }
 
    
-<FormattedDate
-  class="min-w-[140px] py-1 text-xs"
-  date={postDate}
-  dateTimeOptions={{
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }}
-/>
+{hasDate ? (
+  <FormattedDate class="min-w-[95px] py-1 text-xs" date={postDate} />
+) : (
+  <span class="min-w-[95px] py-1 text-xs text-muted-foreground">—</span>
+)}
+
 
 
     <Tag class='z-10 flex-grow'>
