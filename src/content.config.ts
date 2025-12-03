@@ -7,9 +7,20 @@ function removeDupsAndLowerCase(array: string[]) {
   return Array.from(new Set(lowercaseItems));
 }
 
-// 允许：缺失 / "" / null -> undefined（不兜底成 1970，也不自动 new Date()）
+/**
+ * Optional date field that:
+ * - treats: missing / "" / null / undefined as undefined
+ * - treats: 0 / "0" as undefined (prevents 1970 epoch bugs)
+ * - otherwise coerces to Date
+ */
 const optionalDate = z.preprocess(
-  (v) => (v === "" || v == null ? undefined : v),
+  (v) => {
+    if (v === "" || v == null) return undefined;
+    if (v === 0 || v === "0") return undefined;
+    // also handle "   " (spaces)
+    if (typeof v === "string" && v.trim() === "") return undefined;
+    return v;
+  },
   z.coerce.date().optional()
 );
 
@@ -21,11 +32,9 @@ const blog = defineCollection({
       title: z.string().max(60),
       description: z.string().max(1600),
 
-      // ✅ 允许不填，由 GitHub Action 首次写入并固定
-      // blog
-publishDate: z.coerce.date(),
-updatedDate: z.coerce.date().optional(),
-
+      // ✅ allow missing; don't auto-generate build-time dates
+      publishDate: optionalDate,
+      updatedDate: optionalDate,
 
       heroImage: z
         .object({
@@ -54,9 +63,9 @@ const docs = defineCollection({
       title: z.string().max(60),
       description: z.string().max(1600),
 
-      // docs 也允许不填（避免构建失败）
-     publishDate: z.coerce.date().optional(),
-updatedDate: z.coerce.date().optional(),
+      // ✅ allow missing for docs too
+      publishDate: optionalDate,
+      updatedDate: optionalDate,
 
       tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
       draft: z.boolean().default(false),
