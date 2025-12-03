@@ -1,7 +1,7 @@
 
 ---
 title: Signature Question
-description: Display a problem with worry signature. The solution of the question.
+description: The issue of displaying incorrect signatures. The solution of the question.
 publishDate: 2025-12-03
 updatedDate: 2025-12-03
 tags:
@@ -18,7 +18,18 @@ icon粗体化的问题
 <img width="496" height="130" alt="image" src="https://github.com/user-attachments/assets/616727f0-2881-412f-8e02-4eda4e98cb98" />
 
 ```bash
-<?xml version="1.0" encoding="utf-8"?> <svg enable-background="new 0 0 1024 224" fill="none" height="auto" id="Layer_1" version="1.1" viewBox="33 -80 969 386" width="100%" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px"><style> path { stroke: black; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; opacity: 1; } </style> <path.   ...
+<?xml version="1.0" encoding="utf-8"?> <svg enable-background="new 0 0 1024 224" fill="none" height="auto" id="Layer_1" version="1.1" viewBox="33 -80 969 386" width="100%" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+<style>
+path{
+    stroke: black;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    opacity: 1;
+}
+</style>
+<path.   ...
 ```
   
 由于signature.svg中的的 <style> 样式会影响到 icon 的表现  
@@ -61,14 +72,14 @@ icon粗体化的问题
    一切问题得以解决  
    
 
-## 🛠️ 写在最后
+## 🛠️ 写在最后 之另一个问题
 
 关于为什么 .svg 会出现 <style>   
 这是完全可以单出一篇日志的  
 
 日后我或将补齐这一问题   
 而且 日前我也在 Lindx.do 论坛看到了有人提出这一问题 （问题：自动生成的笔划 并不是按照签名的笔划）  
-🔗 链接：
+🔗 链接：https://linux.do/t/topic/1204037/11
 
 今天 仅作一个大致介绍  
 
