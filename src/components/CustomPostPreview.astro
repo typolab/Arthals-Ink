@@ -13,13 +13,12 @@ type Props<Tag extends HTMLTag> = Polymorphic<{ as: Tag }> & {
 }
 
 const { as: Tag = 'div', post, detailed = false, class: className } = Astro.props
-
 const { id, data } = post
 
 const { remarkPluginFrontmatter } = await render(post)
+
 const postDate = data.updatedDate ?? data.publishDate
 const hasDate = postDate instanceof Date && !Number.isNaN(postDate.getTime())
-
 
 // Use custom slug if available, otherwise use the default id
 const postSlug = (data as any).slug || id
@@ -31,10 +30,12 @@ const postSlug = (data as any).slug || id
     detailed && 'max-sm:px-4 sm:py-5',
     className
   )}
-  style={detailed &&
+  style={
+    detailed &&
     data.heroImage?.color &&
     `--preview-highlight:color-mix(in srgb,${data.heroImage.color} 40%,hsl(var(--foreground)/var(--un-text-opacity,1)));
-    --preview-highlight-bg:hsl(from ${data.heroImage.color} h s l/20%)`}
+    --preview-highlight-bg:hsl(from ${data.heroImage.color} h s l/20%)`
+  }
 >
   <a
     class={cn(
@@ -45,25 +46,37 @@ const postSlug = (data as any).slug || id
     href={`/blog/${postSlug}`}
     data-astro-prefetch
   >
-    {
-      detailed && data.heroImage && (
-        <Image
-          alt={data.heroImage.alt || data.title}
-          class='cover-image absolute end-0 top-0 z-0 h-2/3 w-full rounded-2xl object-cover opacity-50 transition-opacity duration-300 group-hover/card:opacity-70 md:h-full md:w-3/5'
-          loading='eager'
-          {...data.heroImage}
-        />
-      )
-    }
+    {detailed && data.heroImage && (
+      <Image
+        alt={data.heroImage.alt || data.title}
+        class='cover-image absolute end-0 top-0 z-0 h-2/3 w-full rounded-2xl object-cover opacity-50 transition-opacity duration-300 group-hover/card:opacity-70 md:h-full md:w-3/5'
+        loading='eager'
+        {...data.heroImage}
+      />
+    )}
 
-   
-{hasDate ? (
-  <FormattedDate class="min-w-[95px] py-1 text-xs" date={postDate} />
-) : (
-  <span class="min-w-[95px] py-1 text-xs text-muted-foreground">—</span>
-)}
-
-
+    {hasDate ? (
+      <FormattedDate
+        class="min-w-[95px] py-1 text-xs"
+        date={postDate}
+        /**
+         * ✅ 如果你要“博客列表页显示时间（北京时间）”，打开下面 dateTimeOptions：
+         */
+        /*
+        dateTimeOptions={{
+          timeZone: 'Asia/Shanghai',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }}
+        */
+      />
+    ) : (
+      <span class="min-w-[95px] py-1 text-xs text-muted-foreground">—</span>
+    )}
 
     <Tag class='z-10 flex-grow'>
       {/* title */}
@@ -72,6 +85,7 @@ const postSlug = (data as any).slug || id
           {data.draft && <span class='text-red-500'>(Draft) </span>}
           {data.title}
         </div>
+
         <svg
           xmlns='http://www.w3.org/2000/svg'
           width='16'
@@ -82,61 +96,63 @@ const postSlug = (data as any).slug || id
           stroke-linecap='round'
           stroke-linejoin='round'
           class='preview-redirect my-1 stroke-muted-foreground group-hover/link:stroke-primary'
-          ><line
+        >
+          <line
             x1='5'
             y1='12'
             x2='19'
             y2='12'
             class='translate-x-4 scale-x-0 transition-all duration-300 ease-in-out group-hover/link:translate-x-1 group-hover/link:scale-x-100'
-          ></line><polyline
+          />
+          <polyline
             points='12 5 19 12 12 19'
             class='translate-x-0 transition-all duration-300 ease-in-out group-hover/link:translate-x-1'
-          ></polyline></svg
-        >
+          />
+        </svg>
       </div>
-      {
-        detailed && (
-          <>
-            {/* desc */}
-            <p
-              class={cn(
-                'line-clamp-2 pt-1 text-sm text-muted-foreground sm:line-clamp-3',
-                data.heroImage && 'sm:me-24'
-              )}
-            >
-              {data.description}
-            </p>
-            <div class='flex items-center gap-2 py-1.5 text-sm italic leading-4 text-muted-foreground sm:py-3'>
-              {/* reading time */}
+
+      {detailed && (
+        <>
+          {/* desc */}
+          <p
+            class={cn(
+              'line-clamp-2 pt-1 text-sm text-muted-foreground sm:line-clamp-3',
+              data.heroImage && 'sm:me-24'
+            )}
+          >
+            {data.description}
+          </p>
+
+          <div class='flex items-center gap-2 py-1.5 text-sm italic leading-4 text-muted-foreground sm:py-3'>
+            {/* reading time */}
+            <span class='flex items-center gap-1'>
+              <Icon name='time' class='size-4' />
+              {remarkPluginFrontmatter.minutesRead}
+            </span>
+
+            {/* language */}
+            {data.language && (
               <span class='flex items-center gap-1'>
-                <Icon name='time' class='size-4' />
-                {remarkPluginFrontmatter.minutesRead}
+                <Icon name='earth' class='size-4' />
+                {data.language}
               </span>
-              {/* language */}
-              {data.language && (
-                <span class='flex items-center gap-1'>
-                  <Icon name='earth' class='size-4' />
-                  {data.language}
-                </span>
-              )}
-            </div>
-          </>
-        )
-      }
+            )}
+          </div>
+        </>
+      )}
     </Tag>
   </a>
-  <!-- tags -->
-  {
-    detailed && data.tags && (
-      <ul class='tag-list mt-1 flex flex-wrap gap-2'>
-        {data.tags.map((tag: string) => (
-          <li>
-            <Button title={tag} href={`/tags/${tag}`} variant='pill' />
-          </li>
-        ))}
-      </ul>
-    )
-  }
+
+  {/* tags */}
+  {detailed && data.tags && (
+    <ul class='tag-list mt-1 flex flex-wrap gap-2'>
+      {data.tags.map((tag: string) => (
+        <li>
+          <Button title={tag} href={`/tags/${tag}`} variant='pill' />
+        </li>
+      ))}
+    </ul>
+  )}
 </li>
 
 <style>
