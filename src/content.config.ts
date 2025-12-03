@@ -8,9 +8,16 @@ function removeDupsAndLowerCase(array: string[]) {
   return Array.from(distinctItems)
 }
 
-// 空/缺失 => undefined（用于 updatedDate）
+/**
+ * 可选日期：把空字符串 / null / undefined / 0 过滤掉，避免 z.coerce.date() 解析出 1970
+ */
 const optionalDateSchema = z.preprocess(
-  (v) => (v === '' || v == null ? undefined : v),
+  (v) => {
+    if (v === '' || v == null) return undefined
+    if (v === 0 || v === '0') return undefined
+    if (typeof v === 'string' && v.trim() === '') return undefined
+    return v
+  },
   z.coerce.date().optional()
 )
 
@@ -23,10 +30,10 @@ const blog = defineCollection({
         title: z.string().max(60),
         description: z.string().max(1600),
 
-        // ✅ publishDate：按你原先习惯为必填
+        // ✅ 仍然必填（你前面说过要还原 publishDate / updatedDate 一致体系）
         publishDate: z.coerce.date(),
 
-        // ✅ updatedDate：可选，没填就让 transform 去回退
+        // ✅ 不填 updatedDate 没关系（由下面 transform 兜底）
         updatedDate: optionalDateSchema,
 
         heroImage: z
@@ -48,8 +55,12 @@ const blog = defineCollection({
       })
       .transform((data) => ({
         ...data,
-        // ✅ 还原点：updatedDate 没填就等于 publishDate
-        updatedDate: data.updatedDate ?? data.publishDate
+
+        /**
+         * ✅ 你的需求：不填 updatedDate 时，显示“现在时间”
+         * 这会在每次构建/部署时更新为构建时刻
+         */
+        updatedDate: data.updatedDate ?? new Date()
       }))
 })
 
@@ -62,7 +73,6 @@ const docs = defineCollection({
         title: z.string().max(60),
         description: z.string().max(1600),
 
-        // docs 这里按你之前也有 default new Date 的写法
         publishDate: z.coerce.date().default(() => new Date()),
         updatedDate: optionalDateSchema,
 
@@ -72,7 +82,9 @@ const docs = defineCollection({
       })
       .transform((data) => ({
         ...data,
-        updatedDate: data.updatedDate ?? data.publishDate
+
+        // docs 同理：不填 updatedDate -> 显示现在（构建时）
+        updatedDate: data.updatedDate ?? new Date()
       }))
 })
 
