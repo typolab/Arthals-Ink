@@ -75,8 +75,18 @@ const displayDateTimeBJ = new Intl.DateTimeFormat('zh-CN', {
 -->
 <Hero {data} {remarkPluginFrontmatter} slot='header'>
   <Fragment slot='description'>
-    <div class="mt-1 text-xs text-muted-foreground">
-      <time datetime={displayDate.toISOString()}>{displayDateTimeBJ}</time>
+    <div class="mt-1 text-xs text-muted-foreground space-y-1">
+      <div>
+        Publish：
+        <time datetime={publishDate.toISOString()}>{publishDateBJ}</time>
+      </div>
+
+      {updatedDate && (
+        <div>
+          Updata：
+          <time datetime={updatedDate.toISOString()}>{updatedDateBJ}</time>
+        </div>
+      )}
     </div>
 
     {!isDraft && enableComment && <PageInfo comment class='mt-1' />}
