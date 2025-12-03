@@ -1,6 +1,5 @@
 ---
 import type { HTMLAttributes } from 'astro/types'
-
 import { cn, getFormattedDate } from '../../utils'
 
 type Props = HTMLAttributes<'time'> & {
@@ -20,11 +19,9 @@ const postDate = getFormattedDate(
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    // second: '2-digit', // 想显示秒就打开
     hour12: false
   }
 )
-
 ---
 
 <span class={cn('text-muted-foreground font-mono', className)} {...attrs}>
