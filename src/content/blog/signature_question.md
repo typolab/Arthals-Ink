@@ -42,12 +42,11 @@ icon粗体化的问题
    ```bash
    <!-- <style is:global> 修改权限 -->
    <style>
-   .signature-wrapper
-   svg {
-   width: 100%;
-   height: auto;
-   stroke: currentColor;
-   }
+   .signature-wrapper svg {
+       width: 100%;
+       height: auto;
+       stroke: currentColor;
+     }
    </style>.
    ```
    is:global 我认为抓住了问题的关键
