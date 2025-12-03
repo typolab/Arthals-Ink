@@ -45,27 +45,8 @@ const socialImage = heroImage
     : heroImage.src.src
   : '/images/social-card.png'
 
-// ✅ 给 meta 用的时间：优先 updated，其次 publish；都没有就 undefined（避免 TS 报错）
-const articleDate =
-  updatedDate?.toISOString() ??
-  publishDate?.toISOString() ??
-  undefined
-
+const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString()
 const primaryColor = data.heroImage?.color ?? 'hsl(var(--primary) / var(--un-text-opacity))'
-
-// ✅ 显示用：北京时间 + 时间（publish/updated 可能为空，所以要做判空）
-const fmtBJ = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false
-})
-
-const publishDateBJ = publishDate ? fmtBJ.format(publishDate) : null
-const updatedDateBJ = updatedDate ? fmtBJ.format(updatedDate) : null
 ---
 
 <PageLayout
@@ -77,25 +58,6 @@ const updatedDateBJ = updatedDate ? fmtBJ.format(updatedDate) : null
 
   <Hero {data} {remarkPluginFrontmatter} slot='header'>
     <Fragment slot='description'>
-      {/* ✅ 两个时间都显示：缺哪个就不显示哪个 */}
-      {(publishDateBJ || updatedDateBJ) && (
-        <div class="mt-1 text-xs text-muted-foreground space-y-1">
-          {publishDate && publishDateBJ && (
-            <div>
-              Publish：
-              <time datetime={publishDate.toISOString()}>{publishDateBJ}</time>
-            </div>
-          )}
-
-          {updatedDate && updatedDateBJ && (
-            <div>
-              Update：
-              <time datetime={updatedDate.toISOString()}>{updatedDateBJ}</time>
-            </div>
-          )}
-        </div>
-      )}
-
       {!isDraft && enableComment && <PageInfo comment class='mt-1' />}
     </Fragment>
   </Hero>
@@ -103,7 +65,6 @@ const updatedDateBJ = updatedDate ? fmtBJ.format(updatedDate) : null
   <slot />
 
   {config.signature && <Signature />}
-
   <Fragment slot='bottom'>
     {/* Copyright */}
     <Copyright {data} />
