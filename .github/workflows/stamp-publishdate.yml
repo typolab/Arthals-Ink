@@ -1,4 +1,3 @@
-
 name: Stamp blog publish/updated dates (changed only, BJ)
 
 on:
@@ -35,8 +34,13 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
+      # 这个 workflow 只需要 gray-matter（纯 JS）来改 frontmatter，不需要任何 postinstall
+      # 所以直接忽略 scripts，避免 simple-git-hooks / sharp 等安装脚本在 CI 里翻车
+      - name: Install deps (ignore postinstall scripts)
+        env:
+          CI: true
+          SKIP_SIMPLE_GIT_HOOKS: "1"
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Collect changed blog files
         id: changed
@@ -91,6 +95,7 @@ jobs:
             return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
           }
 
+          // 将 git 的 ISO 时间转为北京时间(+08:00)
           function toBJ(iso) {
             const out = execFileSync(
               "bash",
@@ -111,6 +116,7 @@ jobs:
             return lines.join("\n");
           }
 
+          // 允许处理“顶部空行 / --- 有空格 / 双 frontmatter”等坏格式，把它们归一成单 frontmatter
           function parseRobust(raw) {
             let s = stripBOM(raw);
             s = ltrimBlankLines(s);
@@ -187,10 +193,10 @@ jobs:
             // publishDate：只在缺失/空时写入（固定）
             if (!hasNonEmpty(data.publishDate)) data.publishDate = firstBJ;
 
-            // updatedDate：每次同步到最后一次 human commit 时间
+            // updatedDate：每次同步为最后一次 human commit 时间
             data.updatedDate = lastBJ;
 
-            // 重新生成“单一 frontmatter”
+            // 输出为“单一 frontmatter”
             const out = matter.stringify(content, data, { language: "yaml" });
             const finalText = normalizeTopDelims(ltrimBlankLines(stripBOM(out))).replace(/\r\n/g, "\n");
 
