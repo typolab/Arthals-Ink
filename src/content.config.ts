@@ -9,19 +9,26 @@ function removeDupsAndLowerCase(array: string[]) {
 }
 
 /**
- * 可选日期：把空字符串 / null / undefined / 0 过滤掉，避免 z.coerce.date() 解析出 1970
+ * Frontmatter 里最坑的就是：
+ * publishDate:   （空）
+ * updatedDate:   （空）
+ * 或者 0 / "0" / ""
+ * 这些会导致 z.coerce.date() 解析成 Invalid Date 或 epoch(1970)
+ * 所以统一先过滤为 undefined。
  */
+function normalizeEmptyDate(v: unknown) {
+  if (v === '' || v == null) return undefined
+  if (v === 0 || v === '0') return undefined
+  if (typeof v === 'string' && v.trim() === '') return undefined
+  return v
+}
+
 const optionalDateSchema = z.preprocess(
-  (v) => {
-    if (v === '' || v == null) return undefined
-    if (v === 0 || v === '0') return undefined
-    if (typeof v === 'string' && v.trim() === '') return undefined
-    return v
-  },
+  normalizeEmptyDate,
   z.coerce.date().optional()
 )
 
-// Define blog collection
+// -------------------- Blog collection --------------------
 const blog = defineCollection({
   loader: glob({ base: './src/content/blog', pattern: '**/*.{md,mdx}' }),
   schema: ({ image }) =>
@@ -30,10 +37,8 @@ const blog = defineCollection({
         title: z.string().max(60),
         description: z.string().max(1600),
 
-        // ✅ 仍然必填（你前面说过要还原 publishDate / updatedDate 一致体系）
-        publishDate: z.coerce.date(),
-
-        // ✅ 不填 updatedDate 没关系（由下面 transform 兜底）
+        // ✅ 允许缺失/空：workflow 会写回；构建期也不会炸
+        publishDate: optionalDateSchema,
         updatedDate: optionalDateSchema,
 
         heroImage: z
@@ -53,18 +58,21 @@ const blog = defineCollection({
         comment: z.boolean().default(true),
         slug: z.string().optional()
       })
-      .transform((data) => ({
-        ...data,
-
-        /**
-         * ✅ 你的需求：不填 updatedDate 时，显示“现在时间”
-         * 这会在每次构建/部署时更新为构建时刻
-         */
-        updatedDate: data.updatedDate ?? new Date()
-      }))
+      .transform((data) => {
+        // ✅ 最终保证 publishDate/updatedDate 都是 Date
+        // workflow 写回前：publishDate 缺失 -> new Date() 临时兜底（可能随构建变化）
+        // workflow 写回后：publishDate 已固定 -> 不再变化
+        const publish = data.publishDate ?? new Date()
+        const update = data.updatedDate ?? publish
+        return {
+          ...data,
+          publishDate: publish,
+          updatedDate: update
+        }
+      })
 })
 
-// Define docs collection
+// -------------------- Docs collection --------------------
 const docs = defineCollection({
   loader: glob({ base: './src/content/docs', pattern: '**/*.{md,mdx}' }),
   schema: () =>
@@ -73,19 +81,23 @@ const docs = defineCollection({
         title: z.string().max(60),
         description: z.string().max(1600),
 
-        publishDate: z.coerce.date().default(() => new Date()),
+        // docs 同样容错（你 workflow 目前只写 blog；docs 将来要写也兼容）
+        publishDate: optionalDateSchema,
         updatedDate: optionalDateSchema,
 
         tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
         draft: z.boolean().default(false),
         order: z.number().default(999)
       })
-      .transform((data) => ({
-        ...data,
-
-        // docs 同理：不填 updatedDate -> 显示现在（构建时）
-        updatedDate: data.updatedDate ?? new Date()
-      }))
+      .transform((data) => {
+        const publish = data.publishDate ?? new Date()
+        const update = data.updatedDate ?? publish
+        return {
+          ...data,
+          publishDate: publish,
+          updatedDate: update
+        }
+      })
 })
 
 export const collections = { blog, docs }
