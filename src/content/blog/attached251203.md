@@ -1,12 +1,12 @@
 ---
-title: Appendix 25—12-03
+title: Appendix 25-12-03
 description: The appendix of log in 25-12-03. As a complement.
 tags:
   - Appendix
 language: 中文
 slug: Appendix_25_12_03
 ---
-## 🛠️ Appendix 25—12-03
+## 🛠️ Appendix 25-12-03
 
 # 自动获取当前时间
 
