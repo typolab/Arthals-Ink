@@ -17,7 +17,7 @@ slug: Appendix_25_12_03
 **Link:** [https://chatgpt.com/c/692fee9c-7bfc-832b-b6c9-2f4f5d0b0d52](https://chatgpt.com/c/692fee9c-7bfc-832b-b6c9-2f4f5d0b0d52)  
 
 ## Prompt:
-
+  
 markdown   pubdata. 怎么自动获取当前时间
 
 ## Response:
