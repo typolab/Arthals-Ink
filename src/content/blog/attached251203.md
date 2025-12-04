@@ -18,7 +18,7 @@ slug: Appendix_25_12_03
 
 ## Prompt:
   
-markdown   pubdata. 怎么自动获取当前时间
+markdown   pubdata. 怎么自动获取当前时间  
 
 ## Response:
 
