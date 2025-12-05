@@ -8,8 +8,9 @@ updatedDate: 2025-12-02
 tags:
   - AAAI_2019
   - hypergraph_neural_networks(HGNN)
+  - Paper
 language: 中文
-slug: Hypergraph
+slug: paper_Hypergraph
 ---
 ## 🛠️ Hypergraph Neural Networks 
 
