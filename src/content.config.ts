@@ -34,7 +34,7 @@ const blog = defineCollection({
   schema: ({ image }) =>
     z
       .object({
-        title: z.string().max(60),
+        title: z.string().max(200),
         description: z.string().max(1600),
 
         // ✅ 允许缺失/空：workflow 会写回；构建期也不会炸
@@ -78,7 +78,7 @@ const docs = defineCollection({
   schema: () =>
     z
       .object({
-        title: z.string().max(60),
+        title: z.string().max(200),
         description: z.string().max(1600),
 
         // docs 同样容错（你 workflow 目前只写 blog；docs 将来要写也兼容）
