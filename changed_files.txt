@@ -1,1 +1,1 @@
-src/content/blog/attached251203.md
+src/content/blog/paper_Hypergraph_Neural_Networks.md
