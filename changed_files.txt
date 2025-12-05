@@ -1,1 +1,1 @@
-src/content/blog/paper_Hypergraph_Neural_Networks.md
+src/content/blog/paper_spaceGNN.md

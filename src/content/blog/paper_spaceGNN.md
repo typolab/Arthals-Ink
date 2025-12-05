@@ -1,11 +1,15 @@
 ---
-title: "Paper - SpaceGNN: Multi-Space Graph Neural Network for Node Anomaly Detection with Extremely Limited Labels"
+title: >-
+  Paper - SpaceGNN: Multi-Space Graph Neural Network for Node Anomaly Detection
+  with Extremely Limited Labels
 description: Record today's log
 tags:
   - SpaceGNN
   - paper
 language: 中文
 slug: paper_SpaceGNN
+publishDate: '2025-12-05T10:46:25+08:00'
+updatedDate: '2025-12-05T10:50:20+08:00'
 ---
 ## 🛠️ The record of the paper with ChatGPT
 
