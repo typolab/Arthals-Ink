@@ -1,5 +1,5 @@
 ---
-title: Paper - SpaceGNN: Multi-Space Graph Neural Network for Node Anomaly Detection with Extremely Limited Labels
+title: "Paper - SpaceGNN: Multi-Space Graph Neural Network for Node Anomaly Detection with Extremely Limited Labels"
 description: Record today's log
 tags:
   - SpaceGNN
