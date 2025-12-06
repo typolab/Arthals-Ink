@@ -1,0 +1,5720 @@
+---
+title: eva title log
+description: Deploying an EVA title generator
+tags:
+  - deploy
+  - eva
+language: 中文
+slug: eva_title
+---
+
+###原 GitHub 网站：[eva-title](https://github.com/itorr/eva-title)
+###原 Demo Server web: [Evangelion Title Card Generator](https://lab.magiconch.com/eva-title/)  
+由于原 Github 的项目 直接拿来是不可用的
+###我经过改良后的 Github 项目：[eva-title](https://github.com/sotaify/eva-title)
+###Demo Server web: [Evangelion Title Card Generator](https://yys.im/eva/)  
+
+
+### 以下是修改
+## Q: 
+
+eva-title-main.zip
+
+这个项目能不能部署在服务器上
+
+## A: 
+
+可以的，而且这个项目**很适合部署到服务器**：从你给的压缩包结构看，它本质上是一个**纯前端静态页面**（入口在 `eva-title-main/html/index.html`，旁边还有字体、JS、图片等资源），不需要数据库之类的后端。
+
+下面给你两种最常见的部署方式（任选其一）。
+
+* * *
+
+## 方式 A：当作“静态网站”部署（推荐：最稳、最省事）
+
+### 1) 解压并把 `html/` 目录当站点根目录
+
+```bash
+unzip eva-title-main.zip
+cd eva-title-main
+# 你的站点文件都在 ./html 里
+ls html
+```
+
+把 `html/` 里的内容复制到你的 Web 服务器站点目录（例：Nginx 常用目录）：
+
+```bash
+sudo mkdir -p /var/www/eva-title
+sudo cp -r html/* /var/www/eva-title/
+```
+
+### 2) Nginx 配置示例（静态托管）
+
+新建：
+
+```bash
+sudo nano /etc/nginx/sites-available/eva-title
+```
+
+填入（把域名换成你的）：
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    root /var/www/eva-title;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # 静态资源缓存（可选）
+    location ~* \.(js|css|png|jpg|jpeg|gif|svg|woff|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public";
+        try_files $uri =404;
+    }
+}
+```
+
+启用并重载：
+
+```bash
+sudo ln -s /etc/nginx/sites-available/eva-title /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+做 HTTPS 的话，用 certbot（如果你已经在用就照常上证书即可）。
+
+* * *
+
+## 方式 B：用 Node/Express 跑一个简单服务（适合你没有 Nginx 的场景）
+
+这个项目的 `package.json` 里带了 `express` 依赖，但仓库里没有现成的 server 文件；你可以用一行命令直接把 `html/` 静态托管起来：
+
+```bash
+cd eva-title-main
+npm i
+node -e "const express=require('express'); const app=express(); app.use(express.static('html')); app.listen(3000, ()=>console.log('http://0.0.0.0:3000'));"
+```
+
+然后用 Nginx/Caddy 反代到 3000（或直接开放 3000 端口也行，但生产上更推荐反代 + HTTPS）。
+
+* * *
+
+## 常见坑位（提前避雷）
+
+*   **站点根目录要指向 `html/`**：不要指到 `eva-title-main/`，否则会找不到 `index.html` 或资源路径。
+
+*   字体文件是 `.woff/.woff2`，静态服务器要能正确返回（Nginx 默认没问题）。
+
+*   如果你打算放到子路径（例如 `https://domain.com/eva/`），需要确认 `index.html` 里资源引用是相对路径还是以 `/` 开头；以 `/xxx` 开头的话就得改成相对路径或改 Nginx `location` 映射。
+
+*   * *
+
+如果你告诉我你服务器环境是 **Nginx / Apache / 只有 Node / 用宝塔** 里的哪一种，以及域名是否已有、是否要 HTTPS，我可以把对应的配置直接按你的场景给到可复制粘贴版本。
+
+## Q: 
+
+用宝塔面板怎么搭建
+
+## A: 
+
+用宝塔搭建这个项目很简单：把它当作“纯静态网站”来部署就行（不需要 Node/数据库）。
+
+## 1）宝塔里先准备环境
+
+*   左侧 **软件商店**：
+
+    *   安装 **Nginx**（推荐）或 Apache（二选一）
+
+    *   PHP / MySQL 都不需要（装了也无所谓）
+
+## 2）创建站点
+
+*   左侧 **网站** → **添加站点**
+
+    *   域名：填你的域名（没有域名也可以先用 IP 访问）
+
+    *   根目录：比如 `/www/wwwroot/eva-title`
+
+    *   PHP版本：选择 **纯静态** / 不设置（宝塔一般会让你选，选“不启用 PHP”即可）
+
+*   点提交创建
+
+## 3）上传项目文件（关键：上传 html 里的内容）
+
+你的压缩包里真实网页入口在 `html/index.html`，所以要把 **html 目录内的文件**放到站点根目录。
+
+做法任意一种：
+
+### 方法 A：宝塔文件管理上传
+
+*   左侧 **文件** → 进入 `/www/wwwroot/eva-title`
+
+*   上传 `eva-title-main.zip` 并解压
+
+*   解压后会出现类似：
+
+    *   `/www/wwwroot/eva-title/eva-title-main/html/index.html`
+
+*   然后把 `html` 里面的所有文件移动到站点根目录：
+
+    *   站点根目录最终应是：
+
+        *   `/www/wwwroot/eva-title/index.html`
+
+        *   `/www/wwwroot/eva-title/js/...`、`/fonts/...` 等
+
+（不想移动也行：就把站点根目录改成解压后的 `.../html`，看下面“方法B”。）
+
+### 方法 B：直接把站点根目录指向 html
+
+*   网站 → 你的站点 → **设置** → **网站目录**
+
+*   把根目录改为：
+
+    *   `/www/wwwroot/eva-title/eva-title-main/html`
+
+*   保存即可（省得移动文件）
+
+## 4）设置默认首页
+
+*   网站 → 你的站点 → **设置** → **默认文档**
+
+*   确保 `index.html` 在最前面（或至少包含）
+
+## 5）配置伪静态 / 防跨站（一般不用改）
+
+*   纯静态页面不需要伪静态规则
+
+*   如果你开了“防跨站攻击”，一般不影响静态站；遇到资源加载失败再关掉试试
+
+## 6）开启 HTTPS（可选但推荐）
+
+*   网站 → 你的站点 → **SSL**
+
+*   选 **Let’s Encrypt** → 申请
+
+*   打开“强制 HTTPS”
+
+## 7）验证是否成功
+
+*   直接访问：`http://你的域名/` 或 `http://服务器IP/`
+
+*   如果出现 404/空白页，90% 是**根目录没指到 html 或没把 html 内容移到根目录**
+
+*   * *
+
+### 常见问题速查
+
+*   **访问域名能打开但图片/JS/CSS 404**：多半是目录层级不对（把 `index.html` 和资源文件放到同一级根目录）
+
+*   **放到二级目录（如 /eva/）资源失效**：资源路径可能用的 `/xxx` 绝对路径，需要改成相对路径或在 Nginx 做映射
+
+如果你把宝塔里站点的**根目录截图**（或告诉我你现在根目录指向哪里、解压后目录结构长啥样），我可以帮你一眼确认你该用“移动 html 内容”还是“改根目录到 html”。
+
+## Q: 
+
+静态页面是乱码 为什么会出现这种情况
+
+## A: 
+
+你这张截图里其实**不是“编码乱码”**（文字都正常显示），更像是两类典型问题之一：
+
+1.  **JS 没有跑起来** → 所以页面里的模板变量直接原样显示出来了，比如：  
+    `{{noMatchMojis.join('，')}}`、`{{input.placeholder}}`、`{{text}}`  
+    这类 `{{ }}` 一般是 Vue/模板渲染占位符，**只要 JS 正常加载并执行，就不会原样露出来**。
+
+2.  **字体/资源没加载成功** → 你这个项目又刚好是字体相关（EVA/Matisse），如果字体文件 404/被拦/类型不对，就会出现“缺字/方块/效果不对”，你会觉得像“乱码”。
+
+下面按宝塔环境给你最快排查&修复方式。
+
+* * *
+
+## 一、先用浏览器 30 秒定位原因（最关键）
+
+打开你部署后的页面，按 **F12 → Network（网络）→ 刷新**：
+
+### 你重点看三种文件有没有 **404 / 403 / (blocked) / MIME type 错误**：
+
+*   `*.js`（脚本）
+
+*   `*.css`（样式）
+
+*   `*.woff` / `*.woff2` / `*.ttf`（字体）
+
+如果 **JS 文件没加载到**（404/403），就会出现你截图这种 `{{xxx}}` 直接显示的情况。
+
+* * *
+
+## 二、最常见原因：站点根目录放错层级（90% 是这个）
+
+你的压缩包里入口在 `.../html/index.html`。
+
+你部署时如果变成：
+
+*   `/www/wwwroot/站点/index.html` 其实不是那个真正的 `html/index.html`
+
+*   或者你把整个 `eva-title-main` 放根目录下，导致引用路径不对
+
+**正确做法二选一：**
+
+### 方案 A（推荐）：把 `html/` 里的内容挪到网站根目录
+
+最终目录应该长这样：
+
+*   `/www/wwwroot/站点/index.html`
+
+*   `/www/wwwroot/站点/js/...`
+
+*   `/www/wwwroot/站点/fonts/...`（或类似）
+
+*   `/www/wwwroot/站点/css/...`
+
+### 方案 B：直接把“网站根目录”改成解压后的 `html`
+
+宝塔 → 网站 → 设置 → 网站目录  
+把根目录指向：
+
+*   `/www/wwwroot/站点/xxx/html`
+
+> 只要你根目录对了，再打开 Network，JS/CSS/字体基本就不会 404。
+
+* * *
+
+## 三、第二高频：宝塔/Nginx 没有正确的字体 MIME 类型（导致字体被拒绝）
+
+有些 Nginx 配置里 `woff2` 没配好，会出现控制台报错类似：
+
+*   “Refused to apply style… MIME type…”
+
+*   “Failed to decode downloaded font”
+
+### 修复方法（宝塔里操作）
+
+宝塔 → 网站 → 设置 → **配置文件**（Nginx）里，确保有这些 `types`（通常在 http 段全局，但站点里加也能救急）：
+
+```nginx
+types {
+  font/woff woff;
+  font/woff2 woff2;
+  application/octet-stream ttf;
+  application/vnd.ms-fontobject eot;
+  image/svg+xml svg;
+}
+```
+
+然后 **重载/重启 Nginx**。
+
+* * *
+
+## 四、如果你说的“乱码”是中文变成???/方块：加 UTF-8
+
+如果你遇到的是中文真的变问号/乱码（你截图不像，但也补上），可以在站点配置里加：
+
+```nginx
+charset utf-8;
+```
+
+同时确保 `index.html` 里有：
+
+```html
+<meta charset="UTF-8">
+```
+
+* * *
+
+## 五、我建议你直接给我两样东西，我就能一口判断
+
+1.  你宝塔站点的 **网站根目录路径**（网站 → 设置 → 网站目录那里）
+
+2.  F12 控制台/Network 里 **报错截图**（尤其是 404 的 js/fonts）
+
+通常我看一眼就能告诉你：是“根目录错层级”还是“MIME/跨域/路径引用”导致的。
+
+## Q: 
+
+我把html里的内容放在和js一个页面还是乱码
+
+## A: 
+
+你这个情况（页面里还在显示 `{{xxx}}` 这种模板占位符）**基本可以确定不是“把文件放同一层就能解决的乱码”**，而是：**JS 没有成功加载或没有成功执行**。只要 JS 正常跑起来，这些 `{{ }}` 绝不会原样显示。
+
+下面按“最常见→最容易修”的顺序给你排：
+
+* * *
+
+## 1）先确认：JS 到底有没有加载成功（最关键）
+
+在浏览器打开你的网站 → 按 **F12**：
+
+### A. 看 Network（网络）→ 刷新页面
+
+过滤关键词：`js`  
+你要看到所有 `.js` 都是 **200**（不是 404/403/301/307/50x）。
+
+> 你也可以用更“暴力”的办法：把 `script src="..."` 里某个 js 地址复制出来，单独在浏览器打开  
+> 能直接下载/显示 JS 内容（而不是 404/403/跳转到登录页）才算对。
+
+### B. 看 Console（控制台）
+
+如果有这些报错，都会导致“`{{ }}` 原样露出来”：
+
+*   `Uncaught SyntaxError...`
+
+*   `Failed to load module script...`（模块脚本没加载/类型不对）
+
+*   `Refused to execute script ... because its MIME type ...`（MIME 类型错误）
+
+*   `Mixed Content`（HTTPS 页面加载 HTTP 脚本被拦）
+
+*   `Cannot read properties of undefined`（脚本执行中途崩了）
+
+*   * *
+
+## 2）你说“html 内容放在和 js 一个页面”——最容易踩的坑是：**路径写的是绝对路径**
+
+很多静态项目在 `index.html` 里这样写资源：
+
+```html
+<script src="/js/xxx.js"></script>
+```
+
+这种写法的含义是：**从域名根路径加载** `https://你的域名/js/xxx.js`
+
+所以如果你的站点实际访问路径是：
+
+*   `https://你的域名/某个子目录/`（比如 `/eva/`、`/html/` 这种）
+
+那 `/js/xxx.js` 会去域名根找，结果就 **404**，页面就变成你现在这样。
+
+✅ 修法（二选一）：
+
+*   **方案 A（推荐）**：让站点“根目录”就是包含 `index.html + js/ + css/ + fonts/` 的那一层，并且用 `https://域名/` 访问
+
+*   **方案 B**：把 `index.html` 里所有 `/js/...` `/css/...` 改成 `./js/...` `./css/...`（相对路径）
+
+*   * *
+
+## 3）宝塔上常见的“JS 被当成文本/被拦”问题（MIME 类型）
+
+如果控制台出现“因为 MIME type 不是 javascript 被拒绝执行”，在宝塔站点的 **Nginx 配置文件**里加一段（通常全局都有，少数环境缺失）：
+
+```nginx
+types {
+  application/javascript  js mjs;
+  text/css                css;
+  font/woff               woff;
+  font/woff2              woff2;
+}
+```
+
+保存后 **重载 Nginx**。
+
+* * *
+
+## 4）如果你开了 HTTPS：检查“混合内容”是否把 JS 拦了
+
+如果你页面是 `https://`，但 `index.html` 里有脚本/资源是 `http://`，浏览器会直接拦掉，导致前端不执行。
+
+✅ 修法：
+
+*   统一改成 `https://` 或者 `//` 或相对路径 `./js/...`
+
+*   * *
+
+## 5）一句话判断你当前是哪种问题
+
+你现在这种“模板变量直接显示”的现象，**99% 是下面两件其一**：
+
+*   资源路径不对 → JS 404
+
+*   JS 被浏览器拦/执行报错 → 没渲染
+
+*   * *
+
+如果你愿意贴一下（复制文字就行，不用截图）：
+
+*   控制台 Console 的第一条红色报错
+
+*   或 Network 里任意一个 `.js` 请求的状态码（200/404/…）和 URL
+
+我就能直接告诉你是 **路径问题 / MIME 问题 / HTTPS 混合内容 / 脚本本身报错**，并给你对应的宝塔改法。
+
+## Q: 
+
+
+## A: 
+
+看到报错就对上了：**不是乱码**，是你站点的 **CSP（Content Security Policy）把 JS 里的 `eval` 禁掉了**，导致脚本执行失败，所以页面没渲染，模板 `{{ }}` 就原样露出来。
+
+截图里两条信息分别是：
+
+1.  `Content Security Policy ... blocks the use of 'eval' in JavaScript` ✅ 根因
+
+2.  `Verify stylesheet URLs` 说明还有 CSS/字体链接可能也有问题（次要）
+
+* * *
+
+## 解决方案（宝塔面板里改，二选一）
+
+### 方案 A（推荐）：去掉/放宽 CSP 里对 eval 的限制
+
+你需要允许 `unsafe-eval`（以及多数前端还需要 `unsafe-inline`，看你项目情况）。
+
+在宝塔：
+
+*   网站 → 你的站点 → **设置** → **配置文件（Nginx）**
+
+*   在 `server { ... }` 里找有没有类似：
+
+    *   `add_header Content-Security-Policy "...";`
+
+    *   或者在反代/安全插件里设置了 CSP
+
+把它改成（示例）：
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;" always;
+```
+
+然后 **重载 Nginx**。
+
+> 如果你原来已经有一条 CSP，就在原来的 `script-src` 里加上 `'unsafe-eval'` 即可，不用整条替换。
+
+* * *
+
+### 方案 B：直接取消 CSP Header（最省事，但安全性最弱）
+
+如果你只是临时展示/内网用，直接把那条：
+
+```nginx
+add_header Content-Security-Policy ...
+```
+
+注释或删掉，然后重载 Nginx。
+
+* * *
+
+## CSP 是从哪里来的？（宝塔常见来源）
+
+*   你手动在 Nginx 配置里加过 `add_header Content-Security-Policy`
+
+*   宝塔的“安全/防跨站/防篡改/加固”类插件可能自动加了
+
+*   你前面套了 CDN/WAF（比如 Cloudflare）也可能下发 CSP（这时改宝塔不生效）
+
+**验证是不是宝塔下发的：**  
+F12 → Network → 点开你的页面请求（Doc）→ Response Headers  
+看 `content-security-policy` 是不是在响应头里，以及具体内容。
+
+* * *
+
+## 顺手把第二个 “Verify stylesheet URLs” 也处理掉
+
+改完 CSP 后，如果还有样式/字体 404，你再去 Network 检查：
+
+*   `.css` 是否 200
+
+*   `.woff2/.woff` 是否 200
+
+*   若有 404：就是路径/目录问题（根目录层级不对或用了 `/css/...` 绝对路径）
+
+*   * *
+
+你把 **Response Headers 里的 `content-security-policy` 那一整行** 复制给我（或告诉我你有没有 CDN/WAF），我可以帮你把 CSP 精准改到“刚好能跑、又不那么松”。
+
+## Q: 
+
+add_header Strict-Transport-Security "max-age=31536000";
+
+## A: 
+
+你贴的这句：
+
+```nginx
+add_header Strict-Transport-Security "max-age=31536000";
+```
+
+这是 **HSTS（强制浏览器用 HTTPS）**，**跟你报的 CSP 禁 `eval` 没关系**，它不会导致 `eval` 被拦。
+
+你现在真正需要处理的是响应头里有没有 **Content-Security-Policy**，一般长这样：
+
+```nginx
+add_header Content-Security-Policy "...";
+```
+
+## 你在宝塔里这样改（直接照做）
+
+1.  宝塔 → **网站** → 你的站点 → **设置** → **配置文件（Nginx）**
+
+2.  在配置里搜索：`Content-Security-Policy` 或 `CSP`
+
+    *   如果找到了，说明是站点配置下发的 CSP
+
+### 修复方式（最直接能跑）
+
+把 CSP 的 `script-src` 增加 `'unsafe-eval'`（必要时也加 `'unsafe-inline'`）：
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;" always;
+```
+
+> 如果你已经有一条 CSP，就不要重复加两条（会打架）；在原来的 `script-src` 里面加 `'unsafe-eval'` 就行。
+
+3.  保存 → **重载 Nginx**
+
+* * *
+
+## 如果你在站点配置里搜不到 CSP
+
+那 CSP 可能来自：
+
+*   宝塔的安全/加固插件
+
+*   CDN/WAF（例如 Cloudflare）下发的响应头
+
+*   上层 Nginx 主配置（不是站点配置）
+
+### 快速确认方法（不用猜）
+
+浏览器 F12 → **Network** → 点开主文档（Doc）→ **Response Headers**  
+把里面这一行复制出来给我：
+
+*   `content-security-policy: ...`
+
+我就能告诉你应该在宝塔哪一层改、该怎么改（只改到能用的最小权限）。
+
+## Q: 
+
+server { listen 80; listen 443 ssl; http2 on; listen 14001; server_name yys.im 74.48.175.131; index index.php index.html index.htm default.php default.htm default.html; root /www/wwwroot/yys.im; #CERT-APPLY-CHECK--START # 用于SSL证书申请时的文件验证相关配置 -- 请勿删除 include /www/server/panel/vhost/nginx/well-known/yys.im.conf; #CERT-APPLY-CHECK--END #SSL-START SSL相关配置，请勿删除或修改下一行带注释的404规则 #error_page 404/404.html; #HTTP_TO_HTTPS_START if ($server_port !~ 443){ rewrite ^(/.\*)$ https://$host$1 permanent; } #HTTP_TO_HTTPS_END ssl_certificate /www/server/panel/vhost/cert/yys.im/fullchain.pem; ssl_certificate_key /www/server/panel/vhost/cert/yys.im/privkey.pem; ssl_protocols TLSv1.1 TLSv1.2 TLSv1.3; ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5; ssl_prefer_server_ciphers on; ssl_session_tickets on; ssl_session_cache shared:SSL:10m; ssl_session_timeout 10m; add_header Strict-Transport-Security "max-age=31536000"; error_page 497 https://$host$request_uri; #SSL-END #ERROR-PAGE-START 错误页配置，可以注释、删除或修改 error_page 404 /404.html; #error_page 502 /502.html; #ERROR-PAGE-END #PHP-INFO-START PHP引用配置，可以注释或修改 include enable-php-80.conf; #PHP-INFO-END #REWRITE-START URL重写规则引用,修改后将导致面板设置的伪静态规则失效 include /www/server/panel/vhost/rewrite/yys.im.conf; #REWRITE-END #禁止访问的文件或目录 location ~ ^/(\\.user.ini|\\.htaccess|\\.git|\\.env|\\.svn|\\.project|LICENSE|README.md) { return 404; } #一键申请SSL证书验证目录相关设置 location ~ \\.well-known{ allow all; } #禁止在证书验证目录放入敏感文件 if ( $uri ~ "^/\\.well-known/.\*\\.(php|jsp|py|js|css|lua|ts|go|zip|tar\\.gz|rar|7z|sql|bak)$" ) { return 403; } location ~ .\*\\.(gif|jpg|jpeg|png|bmp|swf)$ { expires 30d; error_log /dev/null; access_log /dev/null; } location ~ .\*\\.(js|css)?$ { expires 12h; error_log /dev/null; access_log /dev/null; } access_log /www/wwwlogs/yys.im.log; error_log /www/wwwlogs/yys.im.error.log; }配置文件中没有
+
+## A: 
+
+你这份站点配置里确实**没有** `Content-Security-Policy`，所以现在只有两种可能：
+
+## 1) CSP 是在“更上层”加的（宝塔/Nginx 全局或其它 include）
+
+你这份配置里有两处 `include`，CSP 很可能藏在里面或主配置里：
+
+*   `/www/server/panel/vhost/rewrite/yys.im.conf`
+
+*   `/www/server/panel/vhost/nginx/well-known/yys.im.conf`
+
+*   以及你服务器的全局 Nginx：`/www/server/nginx/conf/nginx.conf` 或 `/www/server/nginx/conf/enable-php-80.conf` 也可能加 header
+
+### 直接在服务器上全局搜一下（最快最准）
+
+SSH 执行：
+
+```bash
+grep -R "Content-Security-Policy" -n /www/server/nginx/conf /www/server/panel/vhost
+```
+
+如果搜到了是哪一个文件加的，就在那一行把 CSP 改掉（在 `script-src` 里加 `'unsafe-eval'`），或者先注释掉验证。
+
+* * *
+
+## 2) CSP 不是 Nginx 加的，而是“前端页面自己加的”
+
+有些项目会在 `index.html` 里写：
+
+```html
+<meta http-equiv="Content-Security-Policy" content="...">
+```
+
+这也会触发同样的错误。
+
+### 检查方法
+
+打开你站点的 `index.html` 搜：
+
+```bash
+grep -n "Content-Security-Policy" -n /www/wwwroot/yys.im/index.html
+```
+
+如果存在，就改 meta 里的 `script-src` 加上 `'unsafe-eval'`，或者删掉这个 meta（先跑起来再说）。
+
+* * *
+
+## 你现在可以直接这样临时“放行”让它先跑起来
+
+无论 CSP 在哪，只要你找到它，把 script-src 改成允许 eval：
+
+**示例：**
+
+```nginx
+script-src 'self' 'unsafe-inline' 'unsafe-eval';
+```
+
+> 注意：`unsafe-eval` 会降低安全性。这个项目如果只是自己用/展示，问题不大；如果是对公网、还带用户输入，建议后续再收紧。
+
+* * *
+
+## 另外：你这个站点现在还在跑 PHP（不建议）
+
+你是纯静态项目，却 `include enable-php-80.conf;`，虽然不一定导致 CSP，但会引入额外配置、也可能带来安全头/规则。
+
+✅ 建议（部署稳定后再做也行）：
+
+*   宝塔站点设置里把 PHP 关掉（纯静态）
+
+*   或注释掉 `include enable-php-80.conf;`
+
+*   * *
+
+把你在服务器上执行 `grep -R "Content-Security-Policy"...` 的输出（出现的文件路径和那行内容）贴出来，我就能告诉你该改哪一行、怎么改最小范围地解决 `eval` 被拦的问题。
+
+## Q: 
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+
+## A: 
+
+这行：
+
+```html
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+```
+
+**不是 CSP**，它只是告诉浏览器用最新版渲染（主要给老 IE 用），跟你报的“CSP 禁 eval”完全无关。
+
+你要找的是下面这种才会影响 `eval`：
+
+```html
+<meta http-equiv="Content-Security-Policy" content="...">
+```
+
+* * *
+
+## 你现在应该怎么做（直接定位 CSP 到底从哪来）
+
+### 1）先在浏览器确认 CSP 到底长什么样（最靠谱）
+
+F12 → **Network** → 点最上面的 **Doc（index.html）** → **Response Headers**  
+找到这一行并复制出来（最关键）：
+
+*   `content-security-policy: ...`
+
+只要拿到这一行，我们就能立刻判断它是从 Nginx/CDN/面板插件来的。
+
+* * *
+
+## 2）如果你方便 SSH，上服务器一条命令全局搜 CSP（比猜快）
+
+```bash
+grep -R "Content-Security-Policy" -n /www/server/nginx/conf /www/server/panel/vhost /www/wwwroot/yys.im
+```
+
+*   如果搜到某个文件里有 `Content-Security-Policy` 或 `add_header ...`，就是它在下发。
+
+*   如果完全搜不到，但浏览器 Response Headers 里确实有 CSP，那基本就是 **CDN/WAF** 在加（比如 Cloudflare 之类）。
+
+*   * *
+
+## 3）修复原则（你这个项目需要允许 eval）
+
+你这个项目的 JS 用到了 `eval`（所以报错），要跑起来必须满足其一：
+
+*   CSP 的 `script-src` 加上 `'unsafe-eval'`
+
+*   或者换/重构前端代码让它不依赖 eval（一般不现实）
+
+*   * *
+
+### 立刻能用的最终修复示例（如果 CSP 在 Nginx）
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;" always;
+```
+
+* * *
+
+你现在把 **Response Headers 里那条 `content-security-policy:`** 原样贴出来就行（一整行），我就能直接告诉你：应该改宝塔哪一处/哪一个文件，以及只需要加哪些字段就能正常显示。
+
+## Q: 
+
+在哪
+
+## A: 
+
+在你这张图里，问题**已经不是 CSP 了**（CSP 那条应该是之前的报错/或另一个页面），你现在的关键是 **资源 404 导致 Vue 没加载**，所以才出现：
+
+*   `GET .../document.css 404`
+
+*   `GET https://yys.im/vue.2.6.11.min.js 404`
+
+*   `Uncaught ReferenceError: Vue is not defined`
+
+也就是说：**页面引用的 Vue 文件地址是 `/vue.2.6.11.min.js`，但你服务器根目录下没有这个文件**。
+
+* * *
+
+## 你问“在哪”——答案：在 Console 里已经告诉你了
+
+看第二条红字：
+
+`GET https://yys.im/vue.2.6.11.min.js 404 (Not Found)`
+
+这说明你的 `index.html` 里大概率有这一行（或类似）：
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+同理 CSS 的 404：
+
+`GET https://yys.im/eva/eva-title-main/html/document.css 404`
+
+说明 HTML 里引用了：
+
+```html
+<link rel="stylesheet" href="document.css">
+```
+
+但你当前访问路径在 `/eva/eva-title-main/html/`，服务器那层并没有 `document.css`。
+
+* * *
+
+## 立刻修复（按你当前这个访问路径来）
+
+你现在访问的是：  
+`https://yys.im/eva/eva-title-main/html/`
+
+所以你要么：
+
+### 方案 A（最推荐）：把站点根目录直接指到 `.../html`
+
+宝塔 → 网站 → 设置 → 网站目录  
+把根目录设为（举例）：  
+`/www/wwwroot/yys.im/eva/eva-title-main/html`
+
+这样你访问：  
+`https://yys.im/`  
+就会正确加载：
+
+*   `document.css`
+
+*   `document.js`
+
+*   各种字体/js
+
+同时 `/vue.2.6.11.min.js` 如果项目里带了，就要放在这个根目录同级。
+
+### 方案 B：不改根目录，改引用路径（更麻烦）
+
+把 `index.html` 里这些路径改成“正确的相对/绝对路径”：
+
+*   `src="/vue.2.6.11.min.js"` 改成 `src="./js/vue.2.6.11.min.js"`（前提是你确实有这个文件在 js 目录）
+
+*   `href="document.css"` 改成 `href="./document.css"`（或正确位置）
+
+*   * *
+
+## 你接下来只做一个检查就能确定怎么走
+
+在宝塔文件管理里，找到你现在访问的目录对应的物理路径，然后确认这两个文件到底在哪里：
+
+*   `vue.2.6.11.min.js`
+
+*   `document.css`
+
+### 快速找文件（SSH）
+
+```bash
+cd /www/wwwroot/yys.im
+find . -name "vue.2.6.11.min.js" -o -name "document.css"
+```
+
+*   如果能找到：把它们放到 `index.html` 引用的对应位置（或改引用）
+
+*   如果找不到 `vue.2.6.11.min.js`：说明你漏上传了这个文件，或项目本来依赖外部 CDN（但你现在指向了本地根路径）
+
+*   * *
+
+## 顺带说一句：你之前问 CSP 的 `eval`
+
+即使把 404 修好，**后面可能还会再次碰到 CSP/eval**（因为项目名就叫 eva-title…常见用 eval 做动态字体/渲染），但**现在第一优先是把 Vue 和 CSS 404 解决**，不然页面根本跑不起来。
+
+如果你把 `find` 的输出贴出来（或告诉我这两个文件在服务器上的实际路径），我可以直接告诉你：应该怎么改根目录/怎么改 `index.html` 的两三行引用，做到一次搞定。
+
+## Q: 
+
+github作者似乎没有给出document.css
+
+## A: 
+
+对，**你的压缩包里确实没有 `document.css`**——只有 `document.less`。所以浏览器去请求 `.../document.css` 就 404 了；另外 `Vue` 也 404 (`/vue.2.6.11.min.js` 不存在)，才会出现 `Vue is not defined`、页面渲染失败。
+
+你现在要补齐两样东西：**document.css** 和 **vue.2.6.11.min.js**。
+
+* * *
+
+## 1）生成 `document.css`（由 `document.less` 编译出来）
+
+在服务器上进到你的目录（按你报错的路径）：
+
+```bash
+cd /www/wwwroot/yys.im/eva/eva-title-main/html
+```
+
+装 less 编译器并生成 css：
+
+```bash
+npm i -g less
+lessc document.less document.css
+```
+
+生成后确认文件存在：
+
+```bash
+ls -la document.css
+```
+
+然后刷新页面，`document.css` 的 404 就会消失。
+
+> 如果服务器没装 node/npm：宝塔「软件商店」装个 **Node.js 版本管理器**（或直接装 Node），再执行上面命令。
+
+* * *
+
+## 2）解决 Vue 404（你现在引用的是 `/vue.2.6.11.min.js`）
+
+你页面在请求：  
+`https://yys.im/vue.2.6.11.min.js`（注意是域名根路径，不是 html 目录）
+
+### 方案 A（最快）：下载 Vue 文件到网站根目录
+
+把文件放到：  
+`/www/wwwroot/yys.im/vue.2.6.11.min.js`
+
+```bash
+cd /www/wwwroot/yys.im
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+```
+
+刷新页面，`Vue is not defined` 应该就没了。
+
+### 方案 B（更不容易踩路径坑）：改成相对路径并放到 html 目录
+
+编辑 `/www/wwwroot/yys.im/eva/eva-title-main/html/index.html`：  
+把
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+改成
+
+```html
+<script src="./vue.2.6.11.min.js"></script>
+```
+
+然后把 Vue 下载到 `html` 目录：
+
+```bash
+cd /www/wwwroot/yys.im/eva/eva-title-main/html
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+```
+
+* * *
+
+## 3）你之前提到的 CSP 禁 eval：修完 404 后可能还会再出现
+
+这个项目的 `ui-tabs.vue.js` 这种是 `template: \`...\``，Vue 需要 **编译模板**，会用到` new Function\`（等价于 eval），如果你有 CSP，会再次报 “blocks the use of 'eval'”。
+
+如果你把 Vue/CSS 404 修好后又出现 CSP 报错，那就需要在 CSP 里放行 `'unsafe-eval'`（或移除 CSP）。到时把那条 CSP 头贴出来我给你精确改法。
+
+* * *
+
+你先做完 **(1) lessc 生成 document.css** + **(2) 下载 vue.min.js**，然后再截图一次 Console（看还有没有红字），我就能继续帮你把剩下的一次性清干净。
+
+## Q: 
+
+root@racknerd-d898d1b:~# cd /www/wwwroot/yys.im/eva/eva-title-main/html -bash: cd: /www/wwwroot/yys.im/eva/eva-title-main/html: No such file or directory
+
+## A: 
+
+你这个报错说明一件事：**你浏览器里看到的 URL 路径** `https://yys.im/eva/eva-title-main/html/...` 并不等于服务器的真实文件路径（或者你根本没把文件放在这个位置）。所以先别急着编译 less，我们先把“文件到底在哪”定位出来。
+
+* * *
+
+## 1）先在服务器上把项目目录找出来（直接搜 index.html / document.less）
+
+在 SSH 里执行：
+
+```bash
+cd /www/wwwroot/yys.im
+find . -maxdepth 6 -name "index.html" | head
+```
+
+再搜一下 `document.less`（你说作者只有 less 没 css）：
+
+```bash
+cd /www/wwwroot/yys.im
+find . -maxdepth 8 -name "document.less" -o -name "document.css"
+```
+
+这两条会直接告诉你：项目真实放在 `/www/wwwroot/yys.im` 下的哪个子目录。
+
+* * *
+
+## 2）你现在页面请求的路径为什么是 `/eva/eva-title-main/html/...`？
+
+这通常有两种原因：
+
+### 情况 A：你网站根目录不是 `/www/wwwroot/yys.im`
+
+宝塔里可能设置成别的根目录了。  
+在宝塔：网站 → 站点 → 设置 → 网站目录，确认根目录。
+
+### 情况 B：你是把 zip 解压到别的地方了
+
+比如解压到了：
+
+*   `/www/wwwroot/yys.im/eva-title-main/html`
+
+*   `/www/wwwroot/yys.im/html`
+
+*   `/www/wwwroot/yys.im/eva/xxx/...`
+
+所以你 `cd` 那个路径才不存在。
+
+* * *
+
+## 3）确认真实目录后，再做两件事（修 404）
+
+一旦你找到了真正的 `html` 目录（里面有 `index.html` 和 `document.less`），就进入那个目录：
+
+```bash
+cd /www/wwwroot/yys.im/（这里换成 find 出来的真实路径）
+ls
+```
+
+然后：
+
+### A. 编译 `document.less` → `document.css`
+
+```bash
+npm -v || node -v
+```
+
+如果 node/npm 存在：
+
+```bash
+npm i -g less
+lessc document.less document.css
+```
+
+### B. 解决 Vue 404
+
+你现在页面请求的是 `https://yys.im/vue.2.6.11.min.js`（域名根路径），所以最省事是直接放到站点根目录：
+
+```bash
+cd /www/wwwroot/yys.im
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+```
+
+* * *
+
+## 4）别踩坑：你的 URL 路径和文件路径要对应
+
+你现在 URL 是：`/eva/eva-title-main/html/xxx`  
+只有当服务器上真实存在：  
+`/www/wwwroot/yys.im/eva/eva-title-main/html/xxx`  
+它才会 200。
+
+所以先把 `find` 的结果贴出来（两条命令的输出），我就能告诉你：
+
+*   你文件实际在哪个目录
+
+*   宝塔根目录应该怎么指
+
+*   该在哪个目录编译 `document.less`
+
+*   以及 Vue 文件放哪里最合适
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im# cd /www/wwwroot/yys.im/eva/html root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# npm i -g less lessc document.less document.css npm WARN EBADENGINE Unsupported engine { npm WARN EBADENGINE package: 'less@4.4.2', npm WARN EBADENGINE required: { node: '>=14' }, npm WARN EBADENGINE current: { node: 'v12.22.9', npm: '8.5.1' } npm WARN EBADENGINE } added 18 packages, and audited 19 packages in 3s 1 package is looking for funding run `npm fund` for details found 0 vulnerabilities
+
+## A: 
+
+很好，你已经走到正确目录 `/www/wwwroot/yys.im/eva/html` 了，而且 `less` 也装好了。现在这个提示：
+
+`npm WARN EBADENGINE ... required node >=14, current node v12.22.9`
+
+只是 **警告**（告诉你 Node 版本偏老），不会阻止安装；接下来关键是确认 `lessc` 有没有成功把 `document.less` 编译成 `document.css`。
+
+## 1）先确认是否生成了 document.css（立刻执行）
+
+```bash
+ls -la document.less document.css
+```
+
+如果 `document.css` 存在且大小不是 0，就说明 CSS 这块 OK 了。
+
+如果没有生成（找不到 document.less 或 lessc 报错），再执行：
+
+```bash
+lessc --version
+lessc document.less > document.css
+```
+
+* * *
+
+## 2）你网页里 CSS 请求路径要对上
+
+你之前浏览器报的是：  
+`https://yys.im/eva/eva-title-main/html/document.css` 404
+
+但你真实目录是：  
+`/www/wwwroot/yys.im/eva/html/document.css`
+
+所以说明你现在网页访问路径其实应该是类似：  
+`https://yys.im/eva/html/` 这一套（而不是 eva-title-main/html）。
+
+✅ 你现在用浏览器打开：
+
+*   `https://yys.im/eva/html/document.css`（看能不能直接打开/下载）
+
+*   `https://yys.im/eva/html/`（看页面）
+
+如果能打开 `document.css`，CSS 404 就解决了。
+
+* * *
+
+## 3）下一步：修 Vue 404（否则页面还是会 “Vue is not defined”）
+
+你页面现在请求的是：  
+`https://yys.im/vue.2.6.11.min.js`（域名根）
+
+所以直接放到站点根目录：
+
+```bash
+cd /www/wwwroot/yys.im
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+ls -la vue.2.6.11.min.js
+```
+
+然后刷新网页，`Vue is not defined` 应该就没了。
+
+* * *
+
+## 4）关于 Node 12（建议，但不耽误你先跑起来）
+
+Node 12 太老了，很多工具链会出各种兼容问题。你这次 less 安装成功了就先用着；但后续如果你要构建/打包，建议升级到 Node 16/18。
+
+* * *
+
+你现在把这条命令的输出贴一下我就能继续判断下一步：
+
+```bash
+ls -la /www/wwwroot/yys.im/eva/html/document.css
+```
+
+以及你刷新后控制台还有哪些红色报错（截图或文字都行）。
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# ls -la document.less document.css -rw-r--r-- 1 root root 6769 Dec 5 16:01 document.css -rwxr-xr-x 1 www www 8594 Aug 25 04:42 document.less
+
+## A: 
+
+OK，`document.css` 已经成功生成了（6769 字节），CSS 这块搞定 ✅  
+现在页面还不正常的核心原因大概率只剩 **Vue 404**（你之前控制台明确报 `https://yys.im/vue.2.6.11.min.js 404`，所以 Vue 没定义）。
+
+## 1）把 Vue 放到站点根目录（对应你现在的引用路径）
+
+你的页面在请求的是域名根：`/vue.2.6.11.min.js`  
+所以直接在 `/www/wwwroot/yys.im/` 放这个文件：
+
+```bash
+cd /www/wwwroot/yys.im
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+ls -la vue.2.6.11.min.js
+```
+
+然后浏览器访问测试一下：
+
+*   `https://yys.im/vue.2.6.11.min.js` 应该能打开（不再 404）
+
+刷新页面后，`Vue is not defined` 应该消失。
+
+* * *
+
+## 2）顺手把你访问路径也理顺（避免又出现 404）
+
+你真实文件在：`/www/wwwroot/yys.im/eva/html/`  
+那你浏览器应该访问类似：
+
+*   `https://yys.im/eva/html/`（或具体 `index.html` 所在路径）
+
+如果你仍在访问 `.../eva/eva-title-main/html/`，那就是你 URL 路径和真实目录不一致，后面还会继续 404。
+
+* * *
+
+## 3）如果 Vue 搞定后又弹出 CSP eval 报错
+
+那时再处理 CSP（允许 `'unsafe-eval'`），但**先把 Vue 404 解决**，不然页面仍然渲染不了。
+
+你先执行上面下载 Vue 的命令，然后刷新页面，把新的 Console 红字截图发我，我帮你把剩下的（如果还有）一次清完。
+
+## Q: 
+
+Vue 放到站点根目录 不能放在/www/wwwroot/yys.im/eva/html/下吗
+
+## A: 
+
+可以放在 `/www/wwwroot/yys.im/eva/html/` 下，**但前提是你要把 `index.html` 里引用 Vue 的路径改掉**——因为你现在页面请求的是：
+
+`https://yys.im/vue.2.6.11.min.js`（域名根路径）
+
+这通常来自这行写法：
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+`/` 开头就表示“从网站根目录取”，所以你放到 `eva/html` 下它也找不到。
+
+* * *
+
+## 方案 1（推荐）：放在 eva/html 下 + 改成相对路径
+
+1.  把 Vue 下载到项目目录：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+curl -L -o vue.2.6.11.min.js https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js
+```
+
+2.  修改 `index.html`（把前面的 `/` 去掉，改成相对）：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "vue\.2\.6\.11" index.html
+```
+
+把类似这行：
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+改成：
+
+```html
+<script src="./vue.2.6.11.min.js"></script>
+```
+
+（用宝塔文件管理器编辑或 `nano index.html` 改都行）
+
+这样浏览器访问 `https://yys.im/eva/html/` 时，会从同目录加载 Vue。
+
+* * *
+
+## 方案 2（省改代码）：不改 HTML，直接放根目录
+
+如果你不想改 `index.html`，那就必须放在：  
+`/www/wwwroot/yys.im/vue.2.6.11.min.js`
+
+* * *
+
+## 一句话总结
+
+*   **想放哪都行**
+
+*   **关键看你 `<script src="...">` 写的是绝对路径 `/xxx` 还是相对路径 `./xxx`**
+
+你要是把 `index.html` 里所有 `src="/..."`、`href="/..."` 的几行贴一下（或者我教你用 `grep` 列出来），我还能顺手帮你把整个项目的路径一次性改成“放在子目录也不会 404”的版本。
+
+## Q: 
+
+部分页面还是没好 document.css是不是有问题
+
+## A: 
+
+`document.css` **文件本身没问题**（你已经生成出来了），你现在的问题是：**浏览器请求的 URL 跟服务器文件位置对不上，所以还是 404**。
+
+你截图里控制台写得非常清楚：
+
+> `GET https://yys.im/eva/html/document.css ... 404 (Not Found)`
+
+这说明对外访问路径 `/eva/html/document.css` 在服务器上没映射到那个真实文件。
+
+而你真实文件在服务器上是：  
+`/www/wwwroot/yys.im/eva/html/document.css` ✅（你前面 ls 已经看到）
+
+理论上只要站点根目录是 `/www/wwwroot/yys.im`，那么 `/eva/html/document.css` 就该能访问到。现在 404，通常只有下面几种原因：
+
+* * *
+
+## 1）先做一个最硬核的验证：服务器本机 curl 看看到底返回啥
+
+在服务器执行：
+
+```bash
+curl -I https://yys.im/eva/html/document.css
+curl -I http://127.0.0.1/eva/html/document.css
+```
+
+*   如果 `127.0.0.1` 是 200，而域名是 404：说明 **CDN/反代/Cloudflare** 在搞路径或缓存
+
+*   如果两个都是 404：说明 **Nginx 站点根目录不是 /www/wwwroot/yys.im** 或被 location/重写规则影响
+
+*   * *
+
+## 2）宝塔里最常见：站点根目录其实不是你以为的那个
+
+去宝塔：网站 → yys.im → 设置 → 网站目录  
+确认是不是：
+
+*   **/www/wwwroot/yys.im**
+
+如果不是，改回这个。
+
+* * *
+
+## 3）还有一个你配置里很可疑的点：你开启了 PHP 并 include 了重写规则
+
+你现在是纯静态站，但配置里有：
+
+```nginx
+include enable-php-80.conf;
+include /www/server/panel/vhost/rewrite/yys.im.conf;
+```
+
+某些伪静态/重写会把 `.css` 之类的请求改掉，导致找不到文件。
+
+### 快速排除法（建议你临时做一次）
+
+把伪静态清空（宝塔：网站 → 设置 → 伪静态 → 选 “纯静态/空”），或者临时把站点配置里这行注释掉：
+
+```nginx
+include /www/server/panel/vhost/rewrite/yys.im.conf;
+```
+
+保存后重载 Nginx，再访问 `https://yys.im/eva/html/document.css` 试试。
+
+* * *
+
+## 4）不要猜：直接看 Nginx 访问日志里它到底访问到哪了
+
+你配置里有日志：
+
+*   access: `/www/wwwlogs/yys.im.log`
+
+*   error: `/www/wwwlogs/yys.im.error.log`
+
+执行：
+
+```bash
+tail -n 50 /www/wwwlogs/yys.im.error.log
+tail -n 50 /www/wwwlogs/yys.im.log
+```
+
+然后你在浏览器刷新一下页面，再 tail 一次，看它对 `/eva/html/document.css` 到底报了什么路径的 `open() failed`。
+
+* * *
+
+## 5）你截图里还有个迷惑点：你在编辑器打开的 document.css 顶部有红叉
+
+那种红叉多半是**编辑器语法检查**（比如对 `--color-red` 之类的 CSS 变量提示），不影响浏览器使用；真正致命的是你控制台里的 **404**。
+
+* * *
+
+### 最快直接修好的“保底方案”（不管你根目录咋样都能用）
+
+既然浏览器在找 `/eva/html/document.css`，那就保证它能找到：
+
+```bash
+ls -la /www/wwwroot/yys.im/eva/html/document.css
+```
+
+如果存在，再确保 Nginx root 指向 `/www/wwwroot/yys.im`，并且没有重写拦截它。
+
+* * *
+
+你现在把下面两条命令的输出贴出来（不用截图，复制文本即可），我就能一锤定音是哪一种情况：
+
+```bash
+nginx -T | grep -n "root /www/wwwroot/yys.im" -n
+curl -I http://127.0.0.1/eva/html/document.css
+```
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# curl -I https://yys.im/eva/html/document.css curl -I http://127.0.0.1/eva/html/document.css HTTP/2 200 date: Fri, 05 Dec 2025 16:07:13 GMT content-type: text/css server: cloudflare last-modified: Fri, 05 Dec 2025 16:01:22 GMT vary: Accept-Encoding etag: W/"693301d2-1a71" expires: Sat, 06 Dec 2025 04:07:13 GMT cache-control: max-age=43200 strict-transport-security: max-age=31536000 report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=%2BQ181YY7eGBCR8BirDHzHUyi9rm7Dhq4aCEAyrvCRWGAxVZhbc%2FjOG8MFh9lSOqCWo2e9xz7LVN2Gt2iV9NgMZXohaEVpQ%3D%3D"}]} cf-cache-status: EXPIRED nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800} cf-ray: 9a94cb971f806387-LAX alt-svc: h3=":443"; ma=86400 HTTP/1.1 404 Not Found Server: nginx Date: Fri, 05 Dec 2025 16:07:13 GMT Content-Type: text/html Content-Length: 146 Connection: keep-alive
+
+## A: 
+
+这输出太关键了：**问题已经完全定位**——
+
+*   走域名 `https://yys.im/eva/html/document.css` → **200，且 server: cloudflare**
+
+*   本机直连 `http://127.0.0.1/eva/html/document.css` → **404，server: nginx**
+
+结论：**Cloudflare 没有回源到你这台 Nginx**（或者回源路径/主机不对），你浏览器看到的页面/资源有一部分来自 Cloudflare 的缓存/别的源，所以就出现“有的好、有的坏”的割裂现象。
+
+* * *
+
+## 你现在该怎么修（按最快到最稳）
+
+### 方案 1（最快验证）：Cloudflare 先暂停/灰云
+
+在 Cloudflare 面板：
+
+*   DNS → 把 `yys.im` 和相关记录（A/AAAA/CNAME）从 **橙云代理** 改成 **灰云仅DNS**
+
+*   等几分钟后再访问
+
+如果这时候页面全部统一（而且能复现 404/200 的一致性），就证明问题在 Cloudflare 回源/规则/缓存。
+
+* * *
+
+## 方案 2（推荐长期）：修 Cloudflare 回源到正确的源站
+
+你现在 Nginx 本机 404，说明**源站的站点目录/URL 映射不对**，或你请求的并不是本机正确站点。
+
+### A. 先确认 Nginx 真实站点根目录是否包含文件
+
+在服务器执行：
+
+```bash
+ls -la /www/wwwroot/yys.im/eva/html/document.css
+```
+
+你这个是存在的（之前已确认），那 Nginx 仍返回 404，一般是两种情况：
+
+#### 情况 A1：Nginx 这个 server 并没有用到 `root /www/wwwroot/yys.im`
+
+可能命中了另一个 server 块/默认站点。
+
+👉 用本机直接带 Host 头访问（非常关键）：
+
+```bash
+curl -I -H "Host: yys.im" http://127.0.0.1/eva/html/document.css
+```
+
+*   如果这条变成 **200**：说明 Nginx 站点没问题，是你之前没带 Host 命中了默认站点。
+
+*   如果仍然 **404**：说明这个 server 块虽然匹配了，但解析路径/重写把它搞没了。
+
+我猜你大概率是 **没带 Host 命中默认站点**（因为你站点里有 `server_name yys.im 74.48.175.131;`，而你 curl 用的是 127.0.0.1）。
+
+* * *
+
+## 方案 3：让 Cloudflare 回源时确保 Host 正确
+
+Cloudflare 回源会带 Host=域名，正常不会像 127.0.0.1 那样失配；但你现在出现域名 200、本地 404，说明 Cloudflare 很可能**根本没回你这台**，或者回的是另一个 IP/端口。
+
+请检查 Cloudflare：
+
+1.  DNS 里 `yys.im` 的 A 记录 IP 是不是你这台服务器公网 IP（74.48.175.131？）
+
+2.  是否还有别的记录（www、@、eva 子域）指向不同的源
+
+3.  是否用了 Cloudflare 的 **Cache Rules / Page Rules** 把某些路径缓存成旧版本
+
+4.  如果你用的是 “Origin Rules / Host Header 改写/端口” 之类，确认没改错
+
+* * *
+
+## 你现在马上做这一步，我就能给你下结论
+
+请在服务器执行并把输出贴回来：
+
+```bash
+curl -I -H "Host: yys.im" http://127.0.0.1/eva/html/document.css
+```
+
+如果这条是 200，那你源站其实没问题，你之前的 404 只是因为 curl 没带 Host；接下来我们就专注修前端的其它 404（Vue 路径等）。  
+如果还是 404，我再带你检查 Nginx 重写/目录/try_files，直接把 `/eva/html/*` 这类静态资源彻底放通。\*_
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# ls -la /www/wwwroot/yys.im/eva/html/document.css -rw-r--r-- 1 root root 6769 Dec 5 16:01 /www/wwwroot/yys.im/eva/html/document.css
+
+## A: 
+
+文件在磁盘上没问题 ✅，但你之前 `curl http://127.0.0.1/eva/html/document.css` 仍然 404，说明 **Nginx 没有用这个站点配置来处理你这个请求**（很可能命中了默认站点/别的 server 块），而 Cloudflare 访问域名时却是 200（说明它命中了另一个正确站点或缓存）。
+
+下一步不用猜，直接用 **Host 头**模拟“通过域名访问源站”的方式：
+
+## 现在请你执行这条（最关键的一锤定音）
+
+```bash
+curl -I -H "Host: yys.im" http://127.0.0.1/eva/html/document.css
+```
+
+### 结果怎么解读
+
+*   **如果返回 200**：说明 Nginx 站点其实对，刚才 404 只是因为你用 127.0.0.1 没带 Host 命中了默认站点。  
+    这时你网页“部分不好的”原因就不是 Nginx 路由，而是前端还有资源路径 404（比如 Vue 那个）。
+
+*   **如果仍然 404**：那就是这个站点里有 rewite/try_files/alias 等导致 `/eva/html/document.css` 没被当静态文件正确映射。我会让你贴一下 `rewrite/yys.im.conf` 内容或直接给你一个 `location ^~ /eva/ { ... }` 的放通规则。
+
+*   * *
+
+## 顺手一个检查：Cloudflare 可能在缓存旧页面
+
+你截图里浏览器仍报 `document.css 404`，但你 `curl -I https://yys.im/eva/html/document.css` 是 200，这说明浏览器很可能缓存/或页面引用了错误路径（比如还是引用了旧目录 `/eva/eva-title-main/html/document.css`）。
+
+你可以在浏览器：
+
+*   打开 `https://yys.im/eva/html/index.html`
+
+*   `Ctrl+F5` 强刷（或 DevTools 勾选 Disable cache）
+
+但在我们确认源站路由之前，先把上面那条 `curl -H "Host: yys.im"` 跑了再说。
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# curl -I -H "Host: yys.im" http://127.0.0.1/eva/html/document.css HTTP/1.1 301 Moved Permanently Server: nginx Date: Fri, 05 Dec 2025 16:08:26 GMT Content-Type: text/html Content-Length: 162 Connection: keep-alive Location: https://yys.im/eva/html/document.css Strict-Transport-Security: max-age=31536000
+
+## A: 
+
+完美，这就说明：**源站 Nginx 实际上是正常的**，只是你站点配置里把非 443 的请求都 301 跳到 HTTPS（你配置里那段 `if ($server_port !~ 443) rewrite ... https ...`）。所以：
+
+*   你之前直接 `http://127.0.0.1/...` 看见 404，是因为命中了别的 server/或跳转链路导致你误判；
+
+*   现在带 Host 头后返回 301 到 `https://yys.im/...`，说明这条静态资源在源站路径是通的。
+
+而你浏览器控制台还在报 `document.css 404`，基本就是下面两种之一：
+
+## 1）页面引用的 CSS 路径还是“老的/错误的”
+
+你之前报过 `.../eva/eva-title-main/html/document.css 404`，现在又是 `/eva/html/document.css`。建议直接在服务器查 `index.html` 里到底引用了啥：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "document.css" -n index.html
+grep -n "document.less" -n index.html
+```
+
+如果 HTML 里写的是 `href="document.css"`，那在访问 `https://yys.im/eva/html/` 时没问题；  
+但如果你实际访问的是 `https://yys.im/eva/html/index.html` 以外的路径（比如少了结尾 `/`，或访问了别的目录），相对路径就可能错。
+
+✅ 最稳的写法是改成：
+
+```html
+<link rel="stylesheet" href="./document.css">
+```
+
+**注意是 `./`**。
+
+* * *
+
+## 2）Cloudflare/浏览器缓存了旧的 HTML（还在指向不存在的 css 路径）
+
+你 `curl -I https://yys.im/eva/html/document.css` 是 200，但浏览器仍 404，强烈像缓存导致。
+
+### 清缓存的最快做法
+
+*   浏览器 DevTools → Network 勾选 **Disable cache** → 强刷（Ctrl+F5）
+
+*   Cloudflare 控制台：**Purge Cache → Purge Everything**
+
+    *   或只 Purge `/eva/*`
+
+*   * *
+
+## 顺手把另外两个“看似报错但其实不影响”的解释下
+
+*   `static.cloudflareinsights.com ... ERR_BLOCKED_BY_CLIENT`：这是你浏览器装了广告拦截/隐私插件拦掉了 Cloudflare beacon，**不影响页面功能**。
+
+*   `Canvas2D ... willReadFrequently`：性能提示，**不影响显示**。
+
+*   * *
+
+## 我建议你按这个顺序做（最快见效）
+
+1. 把 `index.html` 里 CSS 引用改成带 `./` 的相对路径
+
+   ```bash
+   sed -i 's/href="document.css"/href=".\/document.css"/' index.html
+   ```
+
+2. 刷新页面前，Cloudflare **Purge** `/eva/*`
+
+3. 浏览器勾 Disable cache 强刷
+
+* * *
+
+如果你愿意，把下面命令输出贴一下（我就能精准告诉你现在 HTML 引用的到底是哪条路径）：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "stylesheet" index.html
+```
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# cd /www/wwwroot/yys.im/eva/html grep -n "document.css" -n index.html grep -n "document.less" -n index.html 10:<link rel="stylesheet" href="document.css">
+
+## A: 
+
+好，那就很清楚了：`index.html` 里引用的是相对路径
+
+```html
+<link rel="stylesheet" href="document.css">
+```
+
+这个写法**只有在你用“目录形式”访问时才一定稳定**，比如：
+
+*   ✅ `https://yys.im/eva/html/` （会拼成 `/eva/html/document.css`）
+
+*   ✅ `https://yys.im/eva/html/index.html`（也会拼成 `/eva/html/document.css`）
+
+但你浏览器仍然报 404，而你 `curl -I https://yys.im/eva/html/document.css` 是 200，这种“矛盾”几乎就是 **缓存/旧页面** 或 **你实际打开的不是这个 index.html**。
+
+我们直接做两步“硬修复”，让它不再受路径/缓存影响：
+
+* * *
+
+## 1）把引用改成更稳的 `./document.css`
+
+在服务器执行：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+sed -i 's/href="document.css"/href=".\/document.css"/' index.html
+```
+
+验证一下：
+
+```bash
+grep -n "document.css" index.html
+```
+
+应变成：
+
+```html
+<link rel="stylesheet" href="./document.css">
+```
+
+* * *
+
+## 2）清 Cloudflare 缓存 + 浏览器强刷
+
+因为你域名走 Cloudflare（你 `curl` 返回 `server: cloudflare`），旧的 `index.html` 很可能还被缓存着。
+
+*   Cloudflare 后台：**Caching → Purge Cache → Purge Everything**
+
+    *   或者只清 `/eva/*`
+
+*   浏览器：DevTools → Network 勾 **Disable cache** → **Ctrl+F5**
+
+*   * *
+
+## 3）再做一个验证：直接打开 CSS 看是不是 200
+
+在浏览器新开一个标签访问：
+
+*   `https://yys.im/eva/html/document.css`
+
+如果能直接看到 CSS 内容（不是 404），那 CSS 绝对没问题；页面仍异常就要看 JS/Vue 的 404 和后续报错。
+
+* * *
+
+### 额外提醒（你前面还缺 Vue）
+
+你之前控制台还有 `Vue is not defined`（因为 `/vue.2.6.11.min.js` 404）。CSS 修好只是样式，页面功能还是要把 Vue 路径也修掉（放根目录，或改成 `./vue.2.6.11.min.js` 并放到 `eva/html`）。
+
+你先按上面把 CSS 引用改成 `./` 并清缓存刷新，然后把刷新后的 Console 红字再发一张，我继续帮你把 Vue 那块一次搞定。
+
+## Q: 
+
+在html页面怎么改
+
+## A: 
+
+在 `html` 页面里改就是改 **index.html** 这一行引用路径。你有两种最方便的方法：
+
+## 方法 1：用宝塔面板改（最直观）
+
+1.  宝塔 → **文件**
+
+2.  打开目录：`/www/wwwroot/yys.im/eva/html/`
+
+3.  找到并点击 **index.html**
+
+4.  点 **编辑**
+
+5.  把这一行：
+
+```html
+<link rel="stylesheet" href="document.css">
+```
+
+改成：
+
+```html
+<link rel="stylesheet" href="./document.css">
+```
+
+6.  保存
+
+7.  浏览器 **Ctrl+F5 强刷**（如果走 Cloudflare，再去 Cloudflare Purge 一下 `/eva/*` 或全站）
+
+* * *
+
+## 方法 2：SSH 一条命令改（最快）
+
+在服务器执行：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+sed -i 's/href="document.css"/href=".\/document.css"/' index.html
+grep -n "document.css" index.html
+```
+
+看到输出变成 `./document.css` 就成功。
+
+* * *
+
+### 顺便把 Vue 也改了（推荐一起做，避免再报 Vue 404）
+
+如果你的 index.html 里有：
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+也建议改成：
+
+```html
+<script src="./vue.2.6.11.min.js"></script>
+```
+
+然后把 `vue.2.6.11.min.js` 放进同目录 `/www/wwwroot/yys.im/eva/html/`。
+
+你要是把 `index.html` 里所有 `<script src=...>` 那几行贴出来，我可以直接告诉你每一行该怎么改成最稳的相对路径版本。
+
+## Q: 
+
+成功了 给我再讲讲相对路径 并举多个例子 让我更明白些
+
+## A: 
+
+太好了！相对路径这东西一句话概括就是：**“从当前网页所在的位置出发，去找资源。”**（而绝对路径是“从网站根目录 / 出发”）。
+
+下面我用你这个项目的结构来讲，配很多例子。
+
+* * *
+
+## 先假设你的目录长这样
+
+站点根目录：`/www/wwwroot/yys.im/`
+
+你项目在：`/www/wwwroot/yys.im/eva/html/`
+
+里面有：
+
+*   `index.html`
+
+*   `document.css`
+
+*   `vue.2.6.11.min.js`
+
+*   `js/app.js`
+
+*   `fonts/matisse.woff2`
+
+*   `img/logo.png`
+
+那么对应的 URL 大概是：
+
+*   `https://yys.im/eva/html/index.html`
+
+*   `https://yys.im/eva/html/document.css`
+
+*   `https://yys.im/eva/html/js/app.js`
+
+*   …
+
+*   * *
+
+## 1）相对路径的三种“起点写法”
+
+### A. `document.css`（不写前缀）
+
+```html
+<link rel="stylesheet" href="document.css">
+```
+
+含义：**在当前页面所在目录**找  
+如果你当前页面是：`https://yys.im/eva/html/index.html`  
+它会去找：`https://yys.im/eva/html/document.css`
+
+### B. `./document.css`（显式说“当前目录”）
+
+```html
+<link rel="stylesheet" href="./document.css">
+```
+
+含义跟上面几乎一样：**仍然是当前目录**。  
+它的优点是更清晰，也更不容易在一些“路径被重写/拼接”的情况下出错。
+
+### C. `../document.css`（上一级目录）
+
+```html
+<link rel="stylesheet" href="../document.css">
+```
+
+含义：从 `eva/html/` 退回到 `eva/` 再找  
+如果当前页是：`https://yys.im/eva/html/index.html`  
+它会去找：`https://yys.im/eva/document.css`
+
+* * *
+
+## 2）最重要的坑：以 `/` 开头的不是相对路径，是“站点绝对路径”
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+这个 `/` 表示：**从域名根目录开始**  
+不管你页面在哪，它都会去：
+
+*   `https://yys.im/vue.2.6.11.min.js`
+
+所以你当时把 Vue 放在 `eva/html/` 下就会 404，因为它根本不去那里找。
+
+对比一下：
+
+*   ✅ `./vue.2.6.11.min.js` → `https://yys.im/eva/html/vue.2.6.11.min.js`
+
+*   ❌ `/vue.2.6.11.min.js` → `https://yys.im/vue.2.6.11.min.js`
+
+*   * *
+
+## 3）多个实战例子（从你当前页面出发）
+
+假设当前页面是：
+
+`https://yys.im/eva/html/index.html`
+
+### ✅ 引用同目录文件
+
+```html
+<link rel="stylesheet" href="./document.css">
+<script src="./vue.2.6.11.min.js"></script>
+```
+
+请求会变成：
+
+*   `/eva/html/document.css`
+
+*   `/eva/html/vue.2.6.11.min.js`
+
+### ✅ 引用子目录文件
+
+```html
+<script src="./js/app.js"></script>
+<img src="./img/logo.png">
+<link rel="preload" href="./fonts/matisse.woff2" as="font" type="font/woff2" crossorigin>
+```
+
+请求会变成：
+
+*   `/eva/html/js/app.js`
+
+*   `/eva/html/img/logo.png`
+
+*   `/eva/html/fonts/matisse.woff2`
+
+### ✅ 引用上一级目录资源
+
+如果你把图片放在 `eva/` 下：`/eva/banner.png`  
+那在 `eva/html/index.html` 里：
+
+```html
+<img src="../banner.png">
+```
+
+会请求：
+
+*   `/eva/banner.png`
+
+*   * *
+
+## 4）相对路径“到底相对谁”？——相对当前 URL 的目录
+
+还是以这个 URL 为例：
+
+`https://yys.im/eva/html/index.html`
+
+*   `a.js` 或 `./a.js` → `/eva/html/a.js`
+
+*   `../a.js` → `/eva/a.js`
+
+*   `../../a.js` → `/a.js`
+
+*   `/a.js` → `/a.js`（永远从根开始）
+
+*   * *
+
+## 5）一个容易迷糊的点：如果 URL 末尾不带 `/`，很多人会踩
+
+例如你访问：
+
+*   `https://yys.im/eva/html`（没写 `/`）
+
+有的服务器会 301 跳转到：
+
+*   `https://yys.im/eva/html/`
+
+有的配置不规范时，会导致浏览器把 `html` 当成“文件名”，相对路径计算就可能怪怪的。
+
+所以我一般建议：
+
+*   站点目录访问尽量保证 **末尾有 `/`**
+
+*   或者在 HTML 里统一用 `./xxx` 这种显式写法
+
+*   * *
+
+## 6）什么时候用相对路径？什么时候用 `/` 绝对路径？
+
+### 用相对路径（推荐给你这种项目）
+
+*   项目可能放在子目录（`/eva/html/`）
+
+*   未来可能换域名、换路径
+
+*   想“拷贝到哪都能跑”
+
+### 用 `/` 绝对路径
+
+*   你确定永远部署在域名根（`https://yys.im/`）
+
+*   想统一引用根目录的公共资源（比如 `/assets/...`）
+
+*   * *
+
+如果你愿意，我也可以帮你把 `index.html` 里所有 `src="/..."`、`href="/..."` 一次性改成更稳的相对路径风格（这样以后你把项目挪到任何子目录都不会 404）。你把 `index.html` 里相关几行贴出来就行。
+
+## Q: 
+
+../../a.js是上一层的上一层吗
+
+## A: 
+
+对，`../../a.js` 就是“上一级的上一级”（往上退两层）再找 `a.js`。
+
+举个具体例子你一眼就懂：
+
+假设当前页面在：  
+`https://yys.im/eva/html/pages/index.html`
+
+也就是目录是：  
+`/eva/html/pages/`
+
+那各个路径解析结果是：
+
+*   `./a.js` 或 `a.js` → `https://yys.im/eva/html/pages/a.js`（同一层）
+
+*   `../a.js` → `https://yys.im/eva/html/a.js`（上一层）
+
+*   `../../a.js` → `https://yys.im/eva/a.js`（上两层）
+
+*   `../../../a.js` → `https://yys.im/a.js`（再上三层到根）
+
+*   `/a.js` → `https://yys.im/a.js`（直接从根开始，跟当前在哪无关）
+
+记忆诀窍：
+
+*   `../` = “回到父目录”一次
+
+*   `../../` = “回到父目录”两次  
+    想回几层就写几个 `../`。
+
+## Q: 
+
+为什么这个项目中 ./a.js 或 a.js 会出现错误
+
+## A: 
+
+因为 `./a.js` 和 `a.js` 都是**相对当前页面 URL 的目录**来算的，而在你这个项目里，“当前页面的目录”经常会因为下面这些原因变掉，所以就会指到错误的位置，导致 404。
+
+## 1）你访问的 URL 不是你以为的那个目录（最常见）
+
+相对路径是按**地址栏里的路径**算的，不按服务器真实文件路径算。
+
+比如你以为你在：
+
+*   `https://yys.im/eva/html/`（目录）
+
+但你实际打开的是：
+
+*   `https://yys.im/eva/` 或 `https://yys.im/eva/html`（少了结尾 `/`）或 `https://yys.im/eva/html/some-route`
+
+那么：
+
+*   `a.js` 会去找 `https://yys.im/eva/a.js` 或 `https://yys.im/eva/html/a.js`（跟你预期不同）
+
+*   于是就 404
+
+\*\*经验：\*\*只要项目可能放在子目录，资源建议统一写成 `./xxx` + 确保用 `.../` 形式访问目录。
+
+* * *
+
+## 2）页面里有 `<base href="...">`（很隐蔽，但杀伤力大）
+
+如果 HTML 里有：
+
+```html
+<base href="/eva/">
+```
+
+那所有相对路径（`a.js`、`./a.js`、`css/main.css`）都会变成相对这个 base 计算，而不是相对当前页面目录。
+
+结果就是你写 `./a.js` 也可能跑去 `/eva/a.js`，从而报错。
+
+你可以在 `index.html` 里搜：
+
+```html
+<base
+```
+
+* * *
+
+## 3）你把 `index.html` 放到了某层，但 `a.js` 实际不在同层
+
+`a.js`/`./a.js` 的含义就是 “同目录下的 a.js”。
+
+所以如果真实结构是：
+
+```css
+/eva/html/index.html
+/eva/html/js/a.js
+```
+
+那你写：
+
+```html
+<script src="a.js"></script>
+```
+
+当然找不到。
+
+必须写成：
+
+```html
+<script src="./js/a.js"></script>
+```
+
+* * *
+
+## 4）前端路由/重写让“当前路径”变深了
+
+比如你打开：
+
+*   `https://yys.im/eva/html/#/about`（hash 路由）一般不影响相对路径  
+    但如果是：
+
+*   `https://yys.im/eva/html/about`（history 路由/重写）  
+    那么 `a.js` 可能会被解析成：
+
+*   `/eva/html/a.js` 或 `/eva/html/about/a.js`（取决于页面实际是哪个 URL）
+
+这也是为什么很多 SPA 静态项目更喜欢用 `/assets/...` 或设置 `base`/打包时配置 publicPath。
+
+* * *
+
+## 5）Cloudflare/缓存导致你加载的是“旧的 HTML”，路径已经变了
+
+你之前就遇到过 Cloudflare：同一个资源 curl 是 200，但浏览器还 404。  
+这是缓存导致你浏览器拿到的 HTML 仍在引用旧路径，当然会觉得“我写 a.js 怎么错了”。
+
+* * *
+
+### 最稳的做法（适合你这个项目）
+
+*   资源写成**相对于当前目录**：`./document.css`、`./vue.2.6.11.min.js`、`./js/xxx.js`
+
+*   确保访问路径是带 `/` 的目录形式：`https://yys.im/eva/html/`
+
+*   检查有没有 `<base href=...>`，有的话要么删掉，要么改正确
+
+如果你把你项目里那几行 `<script src=...>` 和你当前实际打开的页面 URL（地址栏那一整条）贴出来，我可以直接指出是哪一种情况在坑你。
+
+## Q: 
+
+遇到不匹配字型可先嘗試轉繁體，還不匹配的情况請嘗試替換其他文字 实在找不到替换文字可以偷懒安装一份 思源宋体 Heavy 字型作为 Fallbacks
+
+## A: 
+
+明白，你这段话是在给用户写“使用说明/排错建议”。我给你润色成更清晰的一版（保留你原意），再给你一个更正式和一个更口语的版本，你可以按场景选。
+
+## 版本 A（清晰通用，推荐放 README）
+
+遇到字形不匹配时，可先尝试将文字转换为繁体；如果仍不匹配，请更换为其他文字。  
+若实在找不到合适的替换方案，可偷懒安装 **思源宋体（Source Han Serif）Heavy** 作为后备字体（fallback）。
+
+## 版本 B（更正式一点）
+
+如出现字形不匹配的情况，建议优先尝试将文本转换为繁体；若仍无法匹配，请替换为其他文字。  
+若确实无法找到替代字符，可安装 **思源宋体（Source Han Serif）Heavy** 作为 fallback 字体，以提升兼容性。
+
+## 版本 C（更口语一点）
+
+如果有字不匹配，先试试转成繁体；还不行就换个字/换个说法。  
+实在想不到替换的话，直接装个 **思源宋体 Heavy** 当备用字体（fallback）就省事了。
+
+如果你想更贴心一点，我也可以帮你追加一句“哪里下载/安装（Windows/macOS/Linux）”的说明。
+
+## Q: 
+
+如何在这个项目中引用新字体作为后备字体
+
+## A: 
+
+在这个项目里加“后备字体（fallback）”，核心就两步：
+
+1.  **把新字体“可用”起来**（本地已安装 or 项目内用 `@font-face` 引入）
+
+2.  **在 `font-family` 里把它排在主字体后面**（主字体找不到某个字形时，就会往后找）
+
+下面给你几种最实用的做法（直接复制改）。
+
+* * *
+
+## 做法 1（推荐）：把字体文件放进项目，用 `@font-face` 引入（跨设备稳定）
+
+假设你准备用 **思源宋体 Heavy** 当后备字体，并且你拿到了 `SourceHanSerifSC-Heavy.woff2`。
+
+### 1) 放文件
+
+把字体放到例如：
+
+```swift
+/www/wwwroot/yys.im/eva/html/fonts/SourceHanSerifSC-Heavy.woff2
+```
+
+### 2) 在 `document.css`（或你项目的主 CSS）里加入：
+
+```css
+@font-face {
+  font-family: "SHSerifFallback";
+  src: url("./fonts/SourceHanSerifSC-Heavy.woff2") format("woff2");
+  font-weight: 900; /* Heavy 常用 800/900，按你字体实际情况 */
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+### 3) 把后备字体加进 font-family 链
+
+例如你全站用：
+
+```css
+body {
+  font-family: "EVA", "SHSerifFallback", "Source Han Serif SC", "Noto Serif CJK SC", serif;
+}
+```
+
+解释一下顺序：
+
+*   `"EVA"`：你的主字体（项目里那套）
+
+*   `"SHSerifFallback"`：你引入的后备（保证有）
+
+*   `"Source Han Serif SC"` / `"Noto Serif CJK SC"`：用户系统可能自带的宋体系
+
+*   `serif`：最后兜底
+
+> 只要主字体缺某个字的字形，浏览器就会往后找能显示的那个字形。
+
+* * *
+
+## 做法 2：只依赖“系统已安装字体”（最省事，但用户没装就没用）
+
+如果你是让用户自己“安装思源宋体 Heavy”，那项目里不用放字体文件，只要在 CSS 里加 fallback 名称：
+
+```css
+body {
+  font-family: "EVA", "Source Han Serif SC", "Source Han Serif", "Noto Serif CJK SC", serif;
+}
+```
+
+注意：**字体名称要写对**，不同系统显示名可能略不同；写多个别名更稳。
+
+* * *
+
+## 做法 3：只对某个元素/组件加 fallback（不影响其他部分）
+
+比如只对输入框/预览文字加：
+
+```css
+.preview-text, .result-text, input, textarea {
+  font-family: "EVA", "SHSerifFallback", serif;
+}
+```
+
+* * *
+
+## 常见坑（你一看就能避）
+
+*   **路径**：你现在项目在 `/eva/html/`，所以 CSS 里用 `./fonts/...` 最稳（相对 `document.css` 所在目录）。
+
+*   **woff2 优先**：浏览器更友好。能用 woff2 就别用 ttf/otf（体积大）。
+
+*   **不要指望“一个 font-family 只有一种字体”**：按字符逐个 fallback 是正常行为，所以有些字会“看起来不一样”，这是预期结果。
+
+*   **如果你用的是 Vue 模板/JS 动态写 style**：也要把那里的 `fontFamily` 改成带 fallback 的链。
+
+*   * *
+
+## 你可以直接贴一段我帮你改
+
+你把 `document.css` 里现在设置字体的那几行（例如 `body` 或某个 class 的 `font-family`）贴出来，我就能按你项目现状把“后备字体链”精准插进去，保证不破坏现有样式。
+
+## Q: 
+
+帮我看作者有没有在我发的文件中做这一件事
+
+## A: 
+
+看了你发的这个 `eva-title-main.zip`，作者\*\*“有提到/做了一部分准备”，但没有在样式里真正把新字体加入 fallback 链\*\*。
+
+## 他做了什么（在你的文件里确实存在）
+
+### 1) `document.less` 里有一段 **@font-face 的示例**，但全都被注释掉了
+
+在 `eva-title-main/html/document.less` 开头能看到（注意前面都是 `//`，所以不会生效）：
+
+```less
+// @font-face {
+//     font-family: EVAMatisseClassic;
+//     src: url(../fonts/EVA-Matisse_Classic.woff2);
+// }
+// @font-face {
+//     font-family: MatisseProEB;
+//     src: url(FOT-MatissePro-EB.woff2);
+// }
+//
+// @font-face {
+//     font-family: NotoSerifSCBlack;
+//     src: url(NotoSerifSC-Black.woff2);
+// }
+//
+// @font-face {
+//     font-family: baseSplit;
+//     src: url(base-split.woff);
+// }
+```
+
+也就是说：作者**预留了思路**（包括 Noto Serif、baseSplit），但**没有启用**，更没有把“思源宋体 Heavy”放进 `font-family: ... , ...` 里作为后备。
+
+### 2) `document.js` 里会检测你系统有没有装某些字体（包括 “SourceHanSerifCN-Heavy”）
+
+在 `eva-title-main/html/document.js` 里有：
+
+```js
+let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120;
+let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150;
+```
+
+这说明作者**确实考虑过**“如果用户装了思源宋体 Heavy（SourceHanSerifCN-Heavy）就可以用”的场景——但这里目前只是“检测”，并没有在 CSS/JS 里把它接到显示用的 fallback 字体链上。
+
+* * *
+
+## 结论
+
+*   **没有**：在你这份文件里，作者并没有完成“引用新字体作为后备字体（fallback）”这件事（至少没有让页面在缺字时自动 fallback 到思源宋体 Heavy）。
+
+*   **有**：他留了注释示例 + 用 JS 检测系统是否存在 `SourceHanSerifCN-Heavy`，算是“半成品/预备工作”。
+
+如果你愿意，我也可以直接基于你现在的目录结构（你现在是 `/www/wwwroot/yys.im/eva/html/`）给你一套**最小改动**的 fallback 实现：既支持“用户系统装了思源宋体”，也支持“你把 woff2 放进 fonts 目录时自动生效”。
+
+## Q: 
+
+我现在下载了SourceHanSerifCN-Heav.otf 并放到了文件中 我该怎么引用他
+
+## A: 
+
+可以引用，而且你现在放的是 **.otf**，做法就是：用 `@font-face` 把它注册成一个 font-family 名字，然后把这个名字加到你原来的 `font-family` 后面当后备字体。
+
+下面按你现在项目目录（你之前是在 `/www/wwwroot/yys.im/eva/html/`）给你一套最小改动的步骤。
+
+* * *
+
+## 1）把字体放到合适位置（推荐 fonts 目录）
+
+把文件放到（举例）：
+
+```swift
+/www/wwwroot/yys.im/eva/html/fonts/SourceHanSerifCN-Heavy.otf
+```
+
+确认存在：
+
+```bash
+ls -la /www/wwwroot/yys.im/eva/html/fonts/SourceHanSerifCN-Heavy.otf
+```
+
+* * *
+
+## 2）在 `document.css` 顶部加入 `@font-face`
+
+编辑：  
+`/www/wwwroot/yys.im/eva/html/document.css`
+
+在最上面加：
+
+```css
+@font-face {
+  font-family: "SourceHanSerifCNHeavyLocal";
+  src: url("./fonts/SourceHanSerifCN-Heavy.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+> `format("opentype")` 对 .otf 是对的。`font-weight` 不一定必须精确，但建议给 Heavy 用 900。
+
+* * *
+
+## 3）把它加到你页面实际在用的字体链里（关键）
+
+你要找到项目里真正控制文字的那条 `font-family`（通常在 `body`、`.container`、`.preview` 之类的选择器）。
+
+如果你不确定在哪，先搜：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "font-family" document.css | head -n 30
+```
+
+把那条主字体改成类似这种（把你的主字体放前面，新字体放后面）：
+
+```css
+body {
+  font-family: "EVA_Matisse_Classic-EB", "MatissePro-EB", "SourceHanSerifCNHeavyLocal",
+               "Source Han Serif SC", "Noto Serif CJK SC", serif;
+}
+```
+
+要点：
+
+*   **主字体在前**（你项目的 EVA/Matisse）
+
+*   **你的 Heavy 作为后备**（`SourceHanSerifCNHeavyLocal`）
+
+*   再往后放一些系统可能有的宋体系列 + `serif` 兜底
+
+*   * *
+
+## 4）如果你希望“仅当缺字时才替补”，这样写就是对的
+
+浏览器会按“字符”逐个 fallback：主字体没有这个字形 → 去后备字体找 → 直到找到能显示的字形。
+
+* * *
+
+## 5）.otf 在服务器上常见坑：MIME 类型不对导致字体加载失败
+
+如果你打开 F12 → Network 发现 `.otf` 404 或被拒绝，可能需要在 Nginx 增加 otf 类型。
+
+在宝塔站点 Nginx 配置（或全局）加：
+
+```nginx
+types {
+  font/otf  otf;
+}
+```
+
+重载 Nginx。
+
+（如果你没看到任何字体加载报错，一般不需要这步。）
+
+* * *
+
+## 6）快速验证是否生效
+
+1.  浏览器打开页面，F12 → Network 过滤 `otf`  
+    看 `SourceHanSerifCN-Heavy.otf` 是否 **200**
+
+2.  F12 → Elements → 选中那段“显示异常的字”  
+    看 computed 里的 **Rendered Fonts / font-family**，是否出现你的字体名
+
+* * *
+
+### 更推荐的升级（可选）：把 otf 转成 woff2
+
+`.otf` 往往体积大、加载慢。长期建议转 `woff2` 再引用（更省流量更快）。你要是想我给你一条可用的转换命令（根据你服务器环境），我也能直接写好。
+
+如果你把 `document.css` 里目前那段控制字体的选择器（例如 `body{...}` 或对应 class 那几行）贴出来，我可以帮你把 fallback 链准确插进去，避免你改错位置导致“加了但没生效”。
+
+## Q: 
+
+woff2和otf有什么区别 在使用时有什么不一样的
+
+## A: 
+
+`OTF` 和 `WOFF2` 都能装字，但它们更像“**同一本字体的不同包装**”。区别主要在 **用途、体积、加载性能、浏览器支持和服务端配置**。
+
+## 核心区别
+
+### OTF（OpenType Font）
+
+*   **定位**：原始字体文件格式（桌面安装、排版软件常用）
+
+*   **体积**：通常更大（没怎么压缩）
+
+*   **Web 使用**：可以用 `@font-face` 直接引用，但不够“网页友好”
+
+*   **优点**：原汁原味、通用，拿到就能装到系统里
+
+*   **缺点**：网页加载更慢；有时需要额外配置 MIME；CDN/缓存成本更高
+
+### WOFF2（Web Open Font Format 2）
+
+*   **定位**：专门为网页加载设计的字体封装
+
+*   **体积**：通常比 OTF/TTF **小很多**（压缩更强，加载更快）
+
+*   **Web 使用**：网页端最佳实践（现代浏览器几乎都支持）
+
+*   **优点**：快、省流量、缓存友好；浏览器加载体验更稳定
+
+*   **缺点**：不适合作为“系统安装字体”（它主要就是给 web 用的）
+
+*   * *
+
+## 使用时有什么不一样（代码层面）
+
+两者都用 `@font-face`，主要差别在 `src` 的格式声明和你更推荐的写法：
+
+### 用 OTF（你现在的情况）
+
+```css
+@font-face {
+  font-family: "SHSerifHeavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+### 用 WOFF2（推荐）
+
+```css
+@font-face {
+  font-family: "SHSerifHeavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+> `format("woff2")` / `format("opentype")` 写对更利于浏览器判断与优化。
+
+* * *
+
+## 实际部署/体验的不同点（你这种项目最相关）
+
+### 1) 加载速度
+
+*   **WOFF2**：更小 → 更快 → 首屏更稳
+
+*   **OTF**：更大 → 更慢 → 更容易出现“先显示后替换/闪烁(FOUT/FOIT)”
+
+### 2) 服务器配置（MIME / 缓存）
+
+*   **WOFF2** 一般服务器默认就支持得更好（`font/woff2`）
+
+*   **OTF** 有时会被当成 `application/octet-stream`，通常也能用，但偶尔会遇到字体解码/跨域策略更挑剔的情况  
+    （尤其你用了 Cloudflare，更推荐 WOFF2）
+
+### 3) 浏览器兼容
+
+*   现代浏览器：WOFF2 基本没问题
+
+*   极老浏览器：可能只支持 WOFF/TTF，但你这个项目也不太像要兼容 IE 时代
+
+### 4) 授权/版权
+
+这个跟格式无关，但提醒一句：很多字体授权对“网页嵌入”有额外条款。思源系列一般比较友好，但仍建议确认你用的字体版本/授权说明。
+
+* * *
+
+## 最佳实践（你现在该怎么选）
+
+*   只做网页展示：**优先 WOFF2**（推荐把 OTF 转成 WOFF2 再引用）
+
+*   让用户本机安装当 fallback：那就给用户 **OTF/TTF 安装包**（这是系统安装用的）
+
+很多项目会同时提供两种，像这样写最稳：
+
+```css
+@font-face{
+  font-family:"SHSerifHeavy";
+  src:
+    url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2"),
+    url("./fonts/SourceHanSerifCN-Heavy.otf") format("opentype");
+  font-weight:900;
+  font-style:normal;
+  font-display:swap;
+}
+```
+
+浏览器会优先用 woff2；没有支持时才回退到 otf。
+
+* * *
+
+如果你想把你现在那份 `SourceHanSerifCN-Heavy.otf` 转成 `.woff2`，告诉我你服务器上有没有 `fonttools` 或 `node`（你有 npm），我可以给你一个在 Linux 上可直接跑的转换方案。
+
+## Q: 
+
+otf怎么变成woff2
+
+## A: 
+
+你现在在 Linux 服务器上（而且已经有 `node/npm`），把 `.otf` 转成 `.woff2` 最稳的办法有两种：**fonttools（推荐）** 或 **woff2 工具链**。我给你直接可复制的命令。
+
+* * *
+
+## 方案 A（推荐）：用 Python fonttools 转（最简单、成功率高）
+
+### 1) 安装依赖
+
+Ubuntu/Debian：
+
+```bash
+sudo apt update
+sudo apt install -y python3-pip
+pip3 install --user fonttools brotli
+```
+
+> `brotli` 是生成 woff2 需要的。
+
+### 2) 转换
+
+假设你的字体在：  
+`/www/wwwroot/yys.im/eva/html/fonts/SourceHanSerifCN-Heavy.otf`
+
+执行：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html/fonts
+python3 -m fontTools.ttLib.woff2 compress SourceHanSerifCN-Heavy.otf
+```
+
+成功后会生成：  
+`SourceHanSerifCN-Heavy.woff2`
+
+检查：
+
+```bash
+ls -la SourceHanSerifCN-Heavy.*
+```
+
+* * *
+
+## 方案 B：用系统 woff2 工具（也很好但有时要装包）
+
+```bash
+sudo apt update
+sudo apt install -y woff2
+cd /www/wwwroot/yys.im/eva/html/fonts
+woff2_compress SourceHanSerifCN-Heavy.otf
+```
+
+* * *
+
+## 转完以后怎么用（CSS）
+
+把你 CSS 改成优先 woff2：
+
+```css
+@font-face{
+  font-family: "SHSerifHeavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+或者双保险（woff2 优先，otf 兜底）：
+
+```css
+@font-face{
+  font-family:"SHSerifHeavy";
+  src:
+    url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2"),
+    url("./fonts/SourceHanSerifCN-Heavy.otf") format("opentype");
+  font-weight:900;
+  font-style:normal;
+  font-display:swap;
+}
+```
+
+* * *
+
+## 常见坑（如果你遇到错误）
+
+*   `No module named fontTools`：说明 pip 安装没进 PATH，用 `python3 -m pip install --user ...`
+
+*   权限问题：把字体目录权限给可写，或用 `sudo`（不推荐长期用 sudo pip）
+
+如果你把 `fonts` 目录里字体文件名 `ls` 的输出贴一下，我也可以把命令按你的真实文件名精确写一遍，避免拼错。
+
+## Q: 
+
+然后需要哪些操作
+
+## A: 
+
+你现在已经把字体文件放进去了，并且在 `document.css` 里写了 `@font-face`，接下来还差 **最关键的一步**：**在实际使用文字的地方把这些字体加入 `font-family`（作为 fallback 链）**。否则“注册了字体”也不会被用到。
+
+另外你这段 `@font-face` 有两个小问题也要顺手修一下：路径和格式声明。
+
+* * *
+
+## 1）先把 `@font-face` 写规范（建议照下面改）
+
+你截图里像这样：
+
+```css
+@font-face {
+  font-family: EVAMatisseClassic;
+  src: url(..fonts/EVA-Matisse_Classic.woff2);
+}
+```
+
+这里 `..fonts` 少了一个 `/`，应该是 `../fonts/...`（除非你的 fonts 就在同目录，不然会 404）。
+
+✅ 推荐你改成（更稳：带引号 + format）：
+
+```css
+@font-face{
+  font-family: "EVAMatisseClassic";
+  src: url("../fonts/EVA-Matisse_Classic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face{
+  font-family: "NotoSerifSCBlack";
+  src: url("./NotoSerifSC-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+> 说明：
+>
+> *   `../fonts/...`：表示从 `document.css` 所在目录往上一级再进 `fonts`
+>
+> *   `./NotoSerifSC-Black.woff2`：表示文件和 `document.css` 同目录（看你截图像是这样）
+>
+> *   `font-display: swap`：避免白屏等字体加载体验问题
+
+* * *
+
+## 2）最重要：把后备字体加到 `font-family`（让它真的生效）
+
+你要在控制文本显示的选择器里加一条类似：
+
+```css
+body{
+  font-family:
+    "EVAMatisseClassic",
+    "MatisseProEB",
+    "NotoSerifSCBlack",
+    "SourceHanSerifCN-Heavy",
+    serif;
+}
+```
+
+### 怎么找到应该加在哪？
+
+在你 `document.css` 里搜：
+
+*   `font-family:`
+
+*   或者看 `body`、`.text`、`.preview`、`.output` 这些选择器
+
+你可以在服务器上执行：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "font-family" document.css | head -n 50
+```
+
+把你找到的“负责渲染文字的那一条”改成带 fallback 的链即可。
+
+> fallback 的顺序原则：**主字体在前**，缺字才轮到后面的字体。
+
+* * *
+
+## 3）确保文件能被浏览器访问到（用 Network 验证 200）
+
+改完后，浏览器 F12 → Network，过滤 `woff2`，刷新页面，确认：
+
+*   `EVA-Matisse_Classic.woff2` 是 200
+
+*   `NotoSerifSC-Black.woff2` 是 200
+
+*   你新增的字体（如果有）也是 200
+
+如果有 404，就是路径还不对（最容易错的就是 `../fonts/` 和 `./fonts/`）。
+
+* * *
+
+## 4）可选：让 JS 识别到你装的 fallback 字体（如果项目有检测逻辑）
+
+作者的 `document.js` 里会 `checkFont('SourceHanSerifCN-Heavy', 800)` 之类。  
+如果你在 CSS 里把字体 `font-family` 名字写成别的（比如 `"SourceHanSerifCNHeavyLocal"`），那 JS 检测不到。
+
+✅ 建议：你 `@font-face` 的 `font-family` 名字最好就用：
+
+```css
+font-family: "SourceHanSerifCN-Heavy";
+```
+
+跟作者检测字符串一致（更省事）。
+
+* * *
+
+### 你现在只要做两件事就能看到效果
+
+1.  修正 `@font-face` 的路径（`../fonts/...`）
+
+2.  在实际文字样式里加 `font-family` fallback 链
+
+如果你把 `document.css` 里那段“真正控制文字字体的选择器（包含 font-family 的那几行）”贴出来，我可以直接告诉你应该把 fallback 链插到哪一段、怎么写最合适。
+
+## Q: 
+
+font-family只有这两条
+
+## A: 
+
+对，这就说明作者几乎没全局设置字体：页面里只有 `header h1` 和 `header h2` 单独指定了字体，所以你加的 `@font-face` **不会自动用到其他文字**。你需要加一条“全局字体链”（推荐放在 `html` 或 `body` 上），再把 `h1/h2` 那两条也改成使用你的字体链。
+
+下面给你直接可抄的改法。
+
+* * *
+
+## 1）加一条全局 fallback（最关键）
+
+在 `document.css` 里找 `html { ... }` 或 `body { ... }`（你文件里应该有 `html { font: 24px/1.4 sans-serif; }` 那段）。
+
+把它改成这样（加上 `font-family`）：
+
+```css
+html{
+  font: 24px/1.4 sans-serif;
+  font-family:
+    "EVAMatisseClassic",
+    "MatisseProEB",
+    "SourceHanSerifCN-Heavy",
+    "NotoSerifSCBlack",
+    "Noto Serif CJK SC",
+    serif;
+}
+```
+
+> 顺序含义：先用 EVA/Matisse；缺字就用思源宋体 Heavy；再不行用 Noto；最后兜底 serif。
+
+* * *
+
+## 2）把 header 的两条也改成走同一套字体链
+
+你截图里：
+
+```css
+header h1 { font-family: serif; }
+header h2 { font-family: 'Times New Roman', Times, serif; }
+```
+
+改成：
+
+```css
+header h1{
+  font-family:
+    "EVAMatisseClassic",
+    "MatisseProEB",
+    "SourceHanSerifCN-Heavy",
+    "NotoSerifSCBlack",
+    serif;
+}
+
+header h2{
+  font-family:
+    "Times New Roman", Times,
+    "SourceHanSerifCN-Heavy",
+    "NotoSerifSCBlack",
+    serif;
+}
+```
+
+> 这样 h2 仍优先 Times 风格，但缺字会回退到你的中文后备字体。
+
+* * *
+
+## 3）确认你的 `@font-face` 名字和路径匹配
+
+你 `font-family` 里写了 `"SourceHanSerifCN-Heavy"`，那你 `@font-face` 里也要叫这个名字，例如：
+
+```css
+@font-face{
+  font-family: "SourceHanSerifCN-Heavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+（如果你文件还是 `.otf`，把 src 改成 otf 那条即可。）
+
+* * *
+
+## 4）验证是否生效
+
+*   F12 → Network 过滤 `woff2/otf` 看字体是否 200
+
+*   F12 → Elements 选中文字 → 看 computed 里的 **Rendered fonts** 是否出现你加的字体名
+
+*   * *
+
+如果你愿意，我也可以帮你做一个更“干净”的写法：用 CSS 变量统一管理字体链，比如 `--font-main`、`--font-fallback`，以后你换字体只改一处。
+
+## Q: 
+
+html { font: 24px/1.4 sans-serif; text-rendering: optimizeLegibility; -webkit-font-smoothing: grayscale; background: var(--color-background); color: var(--color-font); background-position: top left; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23222222' viewBox='0 0 200 339'%3E%3Cpath d='M100,69.6l87,50v100l-87,50l-87-50v-100L100,69.6zM87-18v68L0,100L-18,0M380,0l-180,100L113,50V-18M0,239l87,50V400H-198M400,400H113v-111l87-50'/%3E%3C/svg%3E"); background-size: 16px; } html[data-output="true"] { overflow: hidden; } body { margin: 0; padding: 20px 0 100px; }
+
+## A: 
+
+很好，就在这段里加就行：**最推荐加在 `html { ... }` 里**，因为你已经用 `font:` 统一设置了字号/行高。
+
+注意一个关键点：你现在写的是
+
+```css
+font: 24px/1.4 sans-serif;
+```
+
+这个 shorthand 会把 `font-family` 也一起设置掉，所以你要么：
+
+*   **方案 A（推荐）**：保留这句，然后在它下面再加一行 `font-family: ...;` 覆盖即可
+
+*   **方案 B**：把 `sans-serif` 换成你的字体链（也行，但不如 A 清晰）
+
+我给你按方案 A 写完整可粘贴版本：
+
+```css
+html {
+  font: 24px/1.4 sans-serif;
+  font-family:
+    "EVAMatisseClassic",
+    "MatisseProEB",
+    "SourceHanSerifCN-Heavy",
+    "NotoSerifSCBlack",
+    "Noto Serif CJK SC",
+    serif;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: grayscale;
+  background: var(--color-background);
+  color: var(--color-font);
+  background-position: top left;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23222222' viewBox='0 0 200 339'%3E%3Cpath d='M100,69.6l87,50v100l-87,50l-87-50v-100L100,69.6zM87-18v68L0,100L-18,0M380,0l-180,100L113,50V-18M0,239l87,50V400H-198M400,400H113v-111l87-50'/%3E%3C/svg%3E");
+  background-size: 16px;
+}
+```
+
+### 重要提醒（避免不生效）
+
+1.  你 `@font-face` 里声明的 `font-family` 名字必须跟这里的一致
+
+    *   例如你写了 `"NotoSerifSCBlack"`，那 `@font-face` 也要 `font-family: "NotoSerifSCBlack";`
+
+2.  路径要能 200（F12 Network 过滤 woff2/otf 看加载是否成功）
+
+* * *
+
+## 让 h1/h2 也吃到这条全局字体（可选，但建议）
+
+你之前 `header h1 { font-family: serif; }` 会覆盖全局，建议你把它删掉或改成继承：
+
+```css
+header h1 { font-family: inherit; }
+header h2 { font-family: inherit; } /* 或者保留 Times 再加中文 fallback */
+```
+
+* * *
+
+如果你把你现在 `@font-face` 那几段（尤其是 SourceHanSerifCN-Heavy 的那段）贴出来，我可以帮你把字体名/路径一次对齐，保证一定能 fallback。
+
+## Q: 
+
+
+## A: 
+
+从你这张图看，现在已经**没有致命错误了**，页面能正常跑起来了 ✅
+
+你看到的两条都不影响功能：
+
+1.  `static.cloudflareinsights.com ... ERR_BLOCKED_BY_CLIENT`  
+    这是被浏览器的广告拦截/隐私插件拦了 Cloudflare 的统计脚本（beacon）。**不用管**。想消失就关掉插件或把这个域名加白名单。
+
+2.  `Canvas2D ... willReadFrequently`  
+    这是浏览器的**性能提示**：你代码里频繁 `getImageData`，建议在创建 canvas context 时加 `willReadFrequently: true`，会更快。**不修也能用**。
+
+* * *
+
+## 如果你想把 Canvas 的提示也消掉（可选优化）
+
+在你报的位置 `makebmp.js:33` 附近，应该有类似：
+
+```js
+const ctx = canvas.getContext('2d');
+```
+
+把它改成：
+
+```js
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+```
+
+保存后刷新，提示一般就没了（或会减少）。
+
+* * *
+
+## 另外：你 Network 里只看到 `NotDefault.woff2`、`base-split.woff`
+
+这说明当前页面确实在加载字体了。  
+如果你还想确认“你的后备字体链是否真的生效”，可以这样验：
+
+### 验证方法
+
+*   F12 → **Elements** → 点一段文字
+
+*   右侧 **Computed** 里找 _Rendered fonts / font-family_
+
+*   看是否出现你设置的 `"SourceHanSerifCN-Heavy"` / `"NotoSerifSCBlack"` 等名字
+
+*   * *
+
+如果你现在的目标是“遇到缺字就优雅 fallback”，你已经走在正确路上了。你想让我帮你再检查一下：你那几个 `@font-face` 路径是否都能 200、以及 `font-family` 链的顺序是否最合理吗？只要把你当前的 `@font-face` + `html{font-family:...}` 两段贴出来就行。
+
+## Q: 
+
+在哪
+
+## A: 
+
+在 **Chrome 开发者工具**里，位置是这样的（按步骤点就能找到）：
+
+1.  打开页面，按 **F12**
+
+2.  点上方的 **Elements（元素）**
+
+3.  用鼠标点一下页面里那段文字（确保选中对应的 DOM）
+
+4.  右侧会有一列面板（如果你看到的是 Styles/Computed/… 那一排标签）
+
+5.  点 **Computed（计算后样式）**
+
+6.  在 Computed 里：
+
+    *   往下滚动，找到 **Rendered Fonts**（有时叫 _Rendered fonts_）
+
+    *   或者在 Computed 顶部的搜索框里输入：`font-family`
+
+如果你右侧没看到 Computed（面板太窄常见），有两个办法：
+
+*   把 DevTools 横向拉宽一点；或
+
+*   点右侧面板标签栏末尾的 `>>`，在里面选 **Computed**。
+
+找到后你会看到浏览器实际用到的字体列表（这就能验证 fallback 是否生效）。
+
+## Q: 
+
+Rendered Fonts Family name: Noto Sans SC PostScript name: Noto-Sans-SC Font origin: Local file(6 glyphs)Rendered Fonts Family name: Noto Sans SC PostScript name: Noto-Sans-SC Font origin: Local file(6 glyphs)
+
+## A: 
+
+这说明 **fallback 已经在工作了**：你当前选中的这段文字里，有 **6 个字形(glyphs)** 最终是用你电脑本地安装的 **Noto Sans SC** 渲染出来的（也就是主字体里缺这些字，浏览器往后找到了能显示的字体）。
+
+但它也说明一件事：在你的 `font-family` 链里，**Noto Sans SC 的优先级比你想要的“思源宋体 Heavy / NotoSerifSCBlack”等更高**，或者你当前这段文字的 CSS 仍然被 `sans-serif`/别的规则覆盖了。
+
+下面是你想要“优先用某个后备字体”的调整办法。
+
+* * *
+
+## 为什么会用到 Noto Sans SC？
+
+常见原因 3 个：
+
+1.  **你设置的后备字体没加载/没匹配到名字**  
+    比如 `@font-face` 的 `font-family` 名字和你写进 `font-family:` 链里的名字不一致；或字体文件路径 404。
+
+2.  **你写的后备字体是衬线(Serif)，但当前这段文字被强制用 sans-serif**  
+    例如某个选择器写了 `font: ... sans-serif;` 或 `font-family: sans-serif;`，导致浏览器更倾向去找系统 sans-serif（Noto Sans SC）。
+
+3.  **你的后备字体链顺序里，Noto Sans SC 更靠前**  
+    比如你写了 `..., sans-serif`，系统就会选它的中文 sans-serif（Noto Sans SC / PingFang 等）。
+
+* * *
+
+## 你想要“缺字时优先用 SourceHanSerifCN-Heavy（或 NotoSerifSCBlack）”怎么做？
+
+### 1）确保你的字体确实被加载（Network 里要看到 200）
+
+F12 → Network 过滤：`woff2` / `otf`  
+你应该能看到比如：
+
+*   `SourceHanSerifCN-Heavy.woff2`（或 .otf） 200
+
+*   `NotoSerifSC-Black.woff2` 200
+
+如果看不到它们，说明你只是写了 `font-family`，但字体根本没被引用成功。
+
+* * *
+
+### 2）把全局字体链明确写成“先 serif 再 fallback serif”
+
+你可以把 html 的 `font` shorthand 改成不指定 family，或者直接覆盖 `font-family`（你之前我们就是这么做的）。
+
+推荐这样写（重点：不要在最后用 `sans-serif` 兜底，而是 `serif`）：
+
+```css
+html{
+  font: 24px/1.4 sans-serif; /* 这行保留也行 */
+  font-family:
+    "EVAMatisseClassic",
+    "MatisseProEB",
+    "SourceHanSerifCN-Heavy",
+    "NotoSerifSCBlack",
+    "Noto Serif CJK SC",
+    serif;
+}
+```
+
+并且确保没有别的地方把 `body` 或某个容器改成 `sans-serif`。
+
+* * *
+
+### 3）如果你希望“即使主字体存在也更倾向宋体风格”，把 sans 系列从链里拿掉
+
+如果你在某处写了类似：
+
+```css
+font-family: ..., "Noto Sans SC", sans-serif;
+```
+
+那它就会很容易用到 Noto Sans SC。
+
+* * *
+
+## 快速确认到底是哪条 CSS 在控制它
+
+在 Elements 里选中那段文字后：
+
+*   看 **Styles** 面板里，哪一条规则最终给了它 `font-family`（会显示来源文件和行号）
+
+*   把那条 `font-family` 贴出来，我就能告诉你应该改哪一处、怎么排顺序。
+
+*   * *
+
+如果你想我直接给你“最稳且符合作者建议”的字体链：  
+你把你当前 `html { ... }` 里 `font-family` 那段和 `@font-face` 里三个字体的 `font-family` 名字贴出来（几行就行），我就能精准指出为什么落到 Noto Sans SC，以及怎么让它优先落到 SourceHanSerifCN-Heavy。
+
+## Q: 
+
+
+## A: 
+
+这张图里的问题也很明确：页面在请求一个 **后端接口**，但你现在是纯静态部署，所以 **`/api/fontmin` 这个接口不存在**，于是 404：
+
+*   `GET https://yys.im/api/fontmin?name=EVAMatisseClassic&unicode=... 404`
+
+这不是字体文件没放好，而是：作者的逻辑想“按需生成/子集化字体（fontmin）”，需要服务端来处理。
+
+* * *
+
+## 你有三种处理方式（从省事到完整）
+
+### 方案 A（最省事，推荐）：在前端禁用这条 /api/fontmin 调用
+
+目标：不要再请求 `/api/fontmin`，改为直接使用你已经放好的本地字体（woff2/otf）做 fallback。
+
+做法：
+
+1.  打开报错指向的文件（你图里是 `make.js:680`，以及触发处 `html/?layout=...`）
+
+2.  在代码里搜索 `"/api/fontmin"` 或 `fontmin`：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -R "api/fontmin" -n .
+# 或
+grep -R "fontmin" -n .
+```
+
+找到后通常是类似：
+
+```js
+fetch(`/api/fontmin?name=${name}&unicode=${...}`)
+```
+
+**临时粗暴版**：直接 return / 跳过这段逻辑，让它不要发请求。（比如在调用前加一行 `return;` 或者把这段生成字体的功能按钮禁用。）
+
+> 适合你只是“生成标题效果/预览”，不需要在线裁剪字体的场景。
+
+* * *
+
+### 方案 B（推荐长期）：把 /api/fontmin 做成一个真正的后端接口（Node/Express）
+
+作者项目里本来就带了 `express` 依赖倾向（你包里有 `package.json`），很可能原作者本地是跑了一个 Node 服务来提供 `/api/fontmin`。
+
+思路：
+
+*   用 Node/Express 起一个服务
+
+*   实现 `/api/fontmin`：接收 `name` 和 `unicode`，用 fontmin（或 fonttools）生成子集 woff2，返回给前端
+
+*   用 Nginx 反代 `/api/` 到 Node 端口
+
+这方案最“还原作者设计”，但需要你在服务器跑 Node 服务。
+
+* * *
+
+### 方案 C（折中）：把需要的字体子集预先生成（不需要接口）
+
+如果你生成的字符集是固定的，你可以离线做好子集字体文件，前端直接引用，不走 api。
+
+但你这个工具看起来是用户输入任意文字，字符集会变，所以预生成不一定合适。
+
+* * *
+
+## 你现在应该做哪一个？
+
+如果你只是想网页能稳定用、缺字就 fallback：**选方案 A**（禁用 `/api/fontmin` 逻辑），最快。
+
+* * *
+
+## 我直接告诉你下一步怎么做（定位具体文件）
+
+先跑这条，把触发文件找出来：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -R "api/fontmin" -n .
+```
+
+把输出贴给我（会显示文件名:行号），我就能告诉你**改哪一行**，用最小改动让它不再 404（同时不影响页面其它功能）。
+
+## Q: 
+
+
+## A: 
+
+你这张图里有 3 类信息，其中**真正影响功能的只有 `/api/fontmin` 404**，另外两类基本可以忽略。
+
+* * *
+
+## 1) 关键问题：`/api/fontmin` 404（必须处理）
+
+你现在是纯静态部署，所以浏览器请求：
+
+`GET https://yys.im/api/fontmin?... 404`
+
+这说明项目里有功能依赖“后端动态子集化字体”（fontmin）。没有后端就会一直报错，并且某些生成/导出功能可能无法使用。
+
+### 你有两条路：
+
+#### 路线 A（推荐，最快稳定）：禁用 fontmin 接口调用，改成直接用本地字体
+
+也就是：不再请求 `/api/fontmin`，只用你已经放好的字体（EVA/Matisse/思源/Noto）做渲染。
+
+你现在先在服务器找到是谁在调用它：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -R "api/fontmin" -n .
+# 或
+grep -R "fontmin" -n .
+```
+
+把输出贴给我（文件名:行号），我就能告诉你改哪一小段：
+
+*   要么直接 return 跳过
+
+*   要么加个开关，比如 `USE_FONTMIN = false`
+
+*   要么失败时 fallback 到本地字体（最优雅）
+
+#### 路线 B（完整还原作者设计）：在服务器实现 `/api/fontmin`
+
+需要起一个 Node/Express 服务实现这个接口，然后 Nginx 反代 `/api/` 到 Node。  
+（这条路工作量更大，但功能最完整）
+
+* * *
+
+## 2) `net::ERR_BLOCKED_BY_CLIENT`（不用管）
+
+这是广告拦截/隐私插件拦了某些脚本（例如 cloudflare insights）。不影响页面核心功能。
+
+* * *
+
+## 3) 红色的 “Unchecked runtime.lastError … message channel closed …”
+
+这几条 **99% 是浏览器插件**（比如翻译、广告拦截、脚本管理器）导致的控制台噪音，跟你站点代码关系不大。
+
+验证方法很简单：
+
+*   用 **无痕窗口**（默认禁用大部分插件）打开页面  
+    或
+
+*   临时禁用插件再打开
+
+它们通常就没了。
+
+* * *
+
+### 你现在最该做的一步
+
+请你直接把下面命令的输出贴出来：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -R "api/fontmin" -n .
+```
+
+我会根据输出给你一个“最小修改补丁”，让 `/api/fontmin` 不再报错，并且页面功能尽可能不受影响。
+
+## Q: 
+
+为什么 没有后备文字效果
+
+## A: 
+
+你现在“没有后备文字效果”的根本原因通常不是 CSS 没写对，而是**这个项目渲染文字的方式**决定的：它很可能是用 **Canvas 画字 / 生成位图**，并且用 JS **主动检测“主字体有没有这个字形”**。一旦检测到“缺字”，它就把这些字当成“不匹配文字”处理，而不是交给浏览器去自动 fallback。
+
+再加上你现在还存在 `/api/fontmin` 404（没有后端），很多“为某段文字生成对应字体子集”的流程会失败，导致它更容易判定“缺字”，从而看起来“fallback 不生效”。
+
+下面把原因和怎么改讲清楚：
+
+* * *
+
+## 为什么浏览器的 fallback 没体现出来？
+
+### 1) CSS fallback 只对“正常页面文字渲染”有效
+
+如果页面是 `<div>你好</div>` 这种由浏览器排版显示的文字，`font-family: A, B, C;` 才会逐字 fallback。
+
+但这个项目很可能是：
+
+*   读取用户输入 → 用 Canvas `ctx.fillText()` 或生成位图 → 导出图片  
+    这种情况下 **font-family 不在 CSS 上决定**，而在 JS 里类似这样决定：
+
+```js
+ctx.font = "48px EVAMatisseClassic";
+```
+
+如果它只写了一个字体名，那就算你 CSS 里写了 fallback，Canvas 也不会用。
+
+✅ 你要让 Canvas 也有 fallback，必须改成字体栈：
+
+```js
+ctx.font = '48px "EVAMatisseClassic","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif';
+```
+
+* * *
+
+### 2) 项目可能“主动判缺字”，把 fallback 机会掐掉
+
+你之前页面里出现过 `{{noMatchMojis...}}` 这种逻辑，说明它会统计“不匹配字”。
+
+很多字体工具会用类似下面的方式检测缺字：
+
+*   `document.fonts.check("48px EVAMatisseClassic", "某字")`
+
+*   或用测宽、测像素来判断字形是否存在
+
+如果它只检测主字体 `EVAMatisseClassic`，那即使后备字体里有字，它也会依然提示“不匹配”，并且可能不去画。
+
+✅ 解决思路：
+
+*   检测时用字体栈（包含 fallback），或者
+
+*   判断缺字时：只要任意一个 fallback 能渲染，就别算“不匹配”。
+
+*   * *
+
+### 3) `/api/fontmin` 404 会让“按需字体生成/子集化”失败
+
+你控制台一直在请求：  
+`/api/fontmin?name=EVAMatisseClassic&unicode=...`
+
+这通常用于：**把你输入的字符做成一个只包含这些字的字体文件**（小、快、可导出一致）。没有后端，这条路就断了，于是它可能：
+
+*   拿不到对应字形 → 直接算“不匹配”
+
+*   或不继续渲染 → 看起来 fallback 没效果
+
+✅ 两条路：
+
+*   **实现后端 `/api/fontmin`**（完整功能）
+
+*   **在前端禁用这段调用，改为直接用你本地/项目内字体渲染**（最快）
+
+*   * *
+
+## 你要怎么做才能“真的有后备文字效果”？
+
+### A. 先确认：你想要的是哪种“后备效果”？
+
+1.  **页面上显示文字时自动 fallback**（浏览器排版）  
+    → 你已经做到一部分了（你看到 Rendered Fonts 用了 Noto Sans SC，说明 fallback 在发生）。
+
+2.  **导出图片/Canvas 生成时也能 fallback**  
+    → 必须改 JS 里的 `ctx.font` 字体栈 + 缺字检测逻辑（这是你现在缺的）。
+
+* * *
+
+## 最快下一步（不问你一堆问题，直接推进）
+
+请你在服务器跑这条，找出到底是谁设置了 Canvas 字体和调用 fontmin：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -R "ctx\.font" -n .
+grep -R "api/fontmin" -n .
+```
+
+把输出（文件名:行号）贴出来，我就能直接告诉你**改哪几行**，把字体栈加上 `"SourceHanSerifCN-Heavy"` / `"NotoSerifSCBlack"`，并让“缺字判断”把 fallback 算进去，这样才会出现你期待的“后备文字效果”。
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva/html# cd /www/wwwroot/yys.im/eva grep -R "ctx\\.font" -n . grep -R "api/fontmin" -n . ./html/document.js:28: ctx.font = `${weight} ${w}px ${fontName},sans-serif`; ./html/make.js:243: ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`; ./document.js:28: ctx.font = `${weight} ${w}px ${fontName},sans-serif`; ./make.js:243: ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`; ./html/document.js:9:// let fontAPI = 'http://192.168.31.7:8003/api/fontmin'; ./html/document.js:10:let fontAPI = `https://${location.hostname}/api/fontmin`; ./html/document.js:12:// fontAPI = 'https://s6.magiconch.com/api/fontmin'; ./html/document.js:13:// fontAPI = 'http://localhost:60912/api/fontmin'; ./html/document.js:15:// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./html/document.js:61: fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:9:// let fontAPI = 'http://192.168.31.7:8003/api/fontmin'; ./document.js:10:let fontAPI = `https://${location.hostname}/api/fontmin`; ./document.js:12:// fontAPI = 'https://s6.magiconch.com/api/fontmin'; ./document.js:13:// fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:15:// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./document.js:61: fontAPI = 'http://localhost:60912/api/fontmin';
+
+## A: 
+
+太好了，答案已经“抓到现行”了：**你这个项目的文字不是靠 CSS 渲染的，而是靠 Canvas 的 `ctx.font` 渲染的**。所以你在 CSS 里加 fallback 不会体现在“生成/导出文字效果”上——必须改 JS 里这两处 `ctx.font` 的字体栈。
+
+你查到的两行就是关键：
+
+* `./html/document.js:28`
+
+  ```js
+  ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+  ```
+
+  这里 fallback 只有 `sans-serif`，所以中文缺字时会掉到系统的 Noto Sans SC（你看到的 Rendered Fonts 就是它）。
+
+* `./html/make.js:243`
+
+  ```js
+  ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+  ```
+
+  这里是否有 fallback，取决于 `baseFontFamilyName` 是啥（一般也没放你要的 Heavy）。
+
+同时你还看到：
+
+```js
+let fontAPI = `https://${location.hostname}/api/fontmin`;
+```
+
+所以它会调用你站点自己的 `/api/fontmin`，你没后端就 404，子集字体生成失败，也会影响“缺字处理”的那部分体验。
+
+* * *
+
+## ✅ 目标：让 Canvas 也具备“后备字体效果”
+
+你要做两件事：
+
+### 1）把 Canvas 的字体栈补齐（让缺字时能落到你指定的字体）
+
+编辑 `./html/document.js`（和根目录的 `./document.js` 如果两份都在用，也一起改同样内容），把第 28 行改成：
+
+```js
+ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`;
+```
+
+> 解释：
+>
+> *   `"${fontName}"` 仍是主字体
+>
+> *   后面依次是你希望优先 fallback 的字体（思源宋体 Heavy、Noto Serif 黑等）
+>
+> *   最后 `serif` 兜底  
+>     **这样 Canvas 在画每个字符时也会按这条链去找字形。**
+
+然后同理改 `./html/make.js`（以及根目录 `./make.js`）的 243 行，改成更稳的“无论 baseFontFamilyName 是什么，都带上 serif fallback”：
+
+```js
+const fallbackStack = `"SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`;
+ctx.font = `${fontWeight} ${fontSize}px "${_fontFamilyName}",${baseFontFamilyName || ""}${baseFontFamilyName ? "," : ""}${fallbackStack}`;
+```
+
+> 这段写法可以避免 `baseFontFamilyName` 为空时出现多余逗号。
+
+* * *
+
+## ✅ 2）处理 `/api/fontmin` 404（不然控制台一直红、且部分功能会失败）
+
+你 `document.js` 里已经给了可用的公共服务地址（注释着）：
+
+```js
+// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';
+```
+
+如果你只是想功能正常、懒得自建后端，**直接用这个**就行：
+
+把 `./html/document.js`（以及 `./document.js`）里这行取消注释并覆盖默认值，例如：
+
+```js
+let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';
+```
+
+并把原来的这行注释掉：
+
+```js
+// let fontAPI = `https://${location.hostname}/api/fontmin`;
+```
+
+> 这样就不会再请求你自己站点的 `/api/fontmin` 了。
+
+* * *
+
+## 最后验证
+
+改完后：
+
+1.  浏览器强刷（Ctrl+F5），看 Console 里 `/api/fontmin` 是否还 404
+
+2.  再选一段 previously “缺字”的内容，看 Canvas 生成的结果是不是已经能用你指定的后备字体显示出来
+
+3.  Network 里确认你的字体文件（woff2/otf）都 200（如果你是通过 `@font-face` 引入的）
+
+* * *
+
+如果你愿意，我也可以帮你更进一步：让“缺字提示”（noMatchMojis）也基于“整条 fallback 栈”判断，而不是只看主字体，这样 UI 上就不会再动不动提示“不匹配文字”。只要你把 `checkFont` 那段相关函数贴出来/或我根据文件再定位行号就行。
+
+## Q: 
+
+${fontName} 里包含哪些字体
+
+## A: 
+
+`fontName` 里放的是**当前选择/要渲染的“主字体名”**（一个 font-family 名称），不是一个列表。
+
+从你贴出来的代码位置看（`document.js:28`）：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+这里的 `${fontName}` 通常会是下面这些之一（取决于你在页面里选了哪种字体/模式）：
+
+*   你在 `@font-face` 里注册的名字，比如：
+
+    *   `EVAMatisseClassic`
+
+    *   `MatisseProEB`
+
+    *   `NotoSerifSCBlack`
+
+    *   以及项目里可能还有的 `baseSplit`、`NotDefault` 等（看你文件里确实有 `base-split.woff`、`NotDefault.woff2`）
+
+它**不会自动包含**后备字体；后备字体是在你拼的这一段里用逗号追加的（例如 `..., "SourceHanSerifCN-Heavy", serif`）。
+
+* * *
+
+## 你怎么“确定”fontName 具体会是什么？
+
+最直接的 3 种方法：
+
+### 方法 1：在代码里打印
+
+在设置 `ctx.font` 前加一行：
+
+```js
+console.log("fontName =", fontName);
+```
+
+刷新页面，看控制台输出。
+
+### 方法 2：全局搜索哪里给 fontName 赋值
+
+在服务器上跑：
+
+```bash
+cd /www/wwwroot/yys.im/eva
+grep -R "fontName" -n ./html/document.js ./html/make.js ./html -n | head -n 60
+```
+
+看它从哪里来（通常是某个下拉选择、配置对象、或字体列表）。
+
+### 方法 3：看页面 UI 的字体选项
+
+一般 UI 里你选的“字体名称”就是传进来的 `fontName`（可能会做一次映射）。
+
+* * *
+
+## 你可以把 fontName 变成“字体栈”吗？
+
+可以，但要小心：如果 `fontName` 本身包含逗号（比如你把它变成 `"A","B"`），那你拼接时要确保加引号，否则容易出错。更推荐的做法是：
+
+*   `fontName` 保持为主字体单个名字
+
+*   另外拼一个 `fallbackStack` 追加在后面（我们前面给的做法）
+
+*   * *
+
+如果你把 `document.js` 里 `fontName` 是怎么来的那几行（大概 10 行上下文）贴出来，我可以直接告诉你：它有哪些可能取值、对应页面里哪个选项、以及你应该把 fallback 栈插在什么地方最干净。
+
+## Q: 
+
+@font-face 里注册的名字 但是还是在页面显示不全 本线这这几个依次 如果EVAMatisseClassic不存在这个字 那么将有后续的字体补全 但是现在这个字体不存在还是显示不出来
+
+## A: 
+
+你这个描述非常典型：**你以为自己做了“字体栈 fallback”，但 Canvas 最终还是“缺字显示不出来”**。这通常不是“font-family 语法”问题，而是下面 3 个原因在作怪（你这项目很可能是 1+2 同时存在）：
+
+* * *
+
+## 1）Canvas 画字时，字体还没加载完成（最常见）
+
+Canvas 的 `ctx.fillText()` 不会像普通 DOM 文本那样“等字体加载完再重排”。如果你在字体文件还没 ready 的时候就画了，它就会用临时字体/缺字结果直接画在画布上，**后面字体加载好了也不会自动补画**，你看到的就一直是“不全”。
+
+✅ 解决：在绘制前强制等待字体加载，然后再绘制（或重绘一次）。
+
+在 `document.js` / `make.js` 里，在你真正开始绘制前加：
+
+```js
+async function ensureFontsReady(fontStack, sampleText = "测试字ABC") {
+  try {
+    // 让浏览器开始加载这些字体
+    await document.fonts.load(`48px ${fontStack}`, sampleText);
+    // 等全部字体就绪
+    await document.fonts.ready;
+  } catch (e) {
+    console.warn("font load failed", e);
+  }
+}
+```
+
+然后你设置 `ctx.font` 之前：
+
+```js
+const fontStack = `"EVAMatisseClassic","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+await ensureFontsReady(fontStack, text);
+ctx.font = `${weight} ${w}px ${fontStack}`;
+```
+
+> 这样即使 EVAMatisseClassic 缺字，也能等到后备字体 ready 后再画出来。
+
+* * *
+
+## 2）你的 `font-weight` 匹配不上，导致根本没用到你注册的字体
+
+你项目里设置 Canvas 字体是这样的（你贴的）：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+注意 `${weight}` 很可能是 **800**（你截图里 h1 就是 800），但你 `@font-face` 可能写的是 `font-weight: 900;` 或没写，浏览器就可能认为“这个家族在 800 这个权重没有对应字体”，于是 fallback 行为会变得很怪，甚至直接跳到系统字体。
+
+✅ 解决：让 `@font-face` 的 weight 覆盖你用到的权重范围（最省事）：
+
+```css
+@font-face{
+  font-family: "SourceHanSerifCN-Heavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2");
+  font-weight: 100 900; /* 关键：覆盖范围，避免 800/900 匹配不上 */
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+对你注册的其他字体也建议这么写（至少把 400/800/900 覆盖掉）。
+
+* * *
+
+## 3）项目自身的“缺字判定/替换”把 fallback 机会掐掉了
+
+这个项目有 `noMatchMojis`、以及 `checkFont(...)` 这种逻辑（你之前页面就显示过“不匹配文字”），它很可能做了：
+
+*   只用主字体 `EVAMatisseClassic` 去检测某字有没有
+
+*   如果没有，就把这个字列到 “不匹配”，甚至直接不画/替换成空白
+
+这样就算你字体栈里后面有 `"SourceHanSerifCN-Heavy"` 能画，它也**不会给你机会**。
+
+✅ 解决有两种：
+
+*   **要么**改逻辑：缺字检测时用“整个字体栈”判断，而不是只测主字体
+
+*   **要么**最简单：先把“缺字过滤/替换”那段逻辑注释掉，让 Canvas 按自然 fallback 画
+
+如果你把 `checkFont` 函数和生成 `noMatchMojis` 的那段代码（几十行附近）贴出来，我可以告诉你最小改动该怎么改成“只要后备字体能显示就不算缺字”。
+
+* * *
+
+## 你现在可以立刻做的 3 个快速自检（不改大逻辑也能定位）
+
+1. **Network 里确认你的后备字体文件确实 200**（特别是 SourceHanSerifCN-Heavy / NotoSerifSCBlack）
+
+2. **把 Canvas 的字体栈临时写死测试**（排除 fontName 传错）：
+
+   ```js
+   ctx.font = `800 48px "EVAMatisseClassic","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+   ```
+
+3. 在绘制前加一句：
+
+   ```js
+   console.log(document.fonts.check('48px "SourceHanSerifCN-Heavy"', '汉'));
+   ```
+
+   *   `true` 才表示浏览器认为这字体 ready 且可用
+
+* * *
+
+### 最可能的结论（结合你项目情况）
+
+你现在“字体不存在还是显示不出来”，最常见就是 **Canvas 在字体未加载完成就已经画完了（原因 1）**，再叠加 **weight 不匹配（原因 2）** 或 **缺字逻辑拦截（原因 3）**。
+
+把你 `document.js` 里 `ctx.font = ...` 往下到真正 `fillText`/生成图片那一段（大概 30~60 行）贴出来，我可以直接给你一份“可用的 patch”，保证：
+
+*   EVAMatisseClassic 缺字时 → 自动用 SourceHanSerifCN-Heavy 补齐
+
+*   并且不会再被项目的缺字提示误伤
+
+## Q: 
+
+document.css @font-face { font-family: EVAMatisseClassic; src: url(../fonts/EVA-Matisse_Classic.woff2); } @font-face { font-family: MatisseProEB; src: url(FOT-MatissePro-EB.woff2); } @font-face { font-family: NotoSerifSCBlack; src: url(NotoSerifSC-Black.woff2); } html { font: 24px/1.4 sans-serif; font-family: MatisseProEB,serif; font-family: EVAMatisseClassic,serif; font-family: EVAMatisseClassic,MatisseProEB,serif; font-family: NotoSerifSCBlack,serif; font-family: MatisseProEB,NotoSerifSCBlack,serif; font-weight: 200; font-display: swap; text-rendering: optimizeLegibility; -webkit-font-smoothing: grayscale; background: var(--color-background); color: var(--color-font); background-position: top left; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23222222' viewBox='0 0 200 339'%3E%3Cpath d='M100,69.6l87,50v100l-87,50l-87-50v-100L100,69.6zM87-18v68L0,100L-18,0M380,0l-180,100L113,50V-18M0,239l87,50V400H-198M400,400H113v-111l87-50'/%3E%3C/svg%3E"); background-size: 16px; }
+
+## A: 
+
+问题找到了：你这段 CSS 里 **`font-family` 写了很多行，但只有最后一行会生效**。CSS 规则是“同一个选择器里同名属性，后写的覆盖先写的”。所以你现在实际生效的是：
+
+```css
+font-family: MatisseProEB,NotoSerifSCBlack,serif;
+```
+
+而且你**并没有把 `SourceHanSerifCN-Heavy` 加进来**，所以缺字时根本不会用它补。
+
+另外还有 2 个坑也要修：
+
+1.  `font-display` 写在 `html {}` 里是无效的（它只对 `@font-face` 有效）
+
+2.  `@font-face` 里没写 `format()`、没写 `font-weight` 范围，Canvas 用 `800` 时可能匹配不到你加载的那份字重。
+
+* * *
+
+## ✅ 你应该改成这样（直接替换你的 html { ... } 里的 font-family 部分）
+
+把 `html {}` 里那一堆 `font-family:` 只保留 **一条**，比如：
+
+```css
+html {
+  font: 24px/1.4 sans-serif;
+
+  font-family:
+    EVAMatisseClassic,
+    MatisseProEB,
+    SourceHanSerifCN-Heavy,
+    NotoSerifSCBlack,
+    serif;
+
+  font-weight: 200;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: grayscale;
+  background: var(--color-background);
+  color: var(--color-font);
+  background-position: top left;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23222222' viewBox='0 0 200 339'%3E%3Cpath d='M100,69.6l87,50v100l-87,50l-87-50v-100L100,69.6zM87-18v68L0,100L-18,0M380,0l-180,100L113,50V-18M0,239l87,50V400H-198M400,400H113v-111l87-50'/%3E%3C/svg%3E");
+  background-size: 16px;
+}
+```
+
+> 注意：`SourceHanSerifCN-Heavy` 只有在你也用 `@font-face` 注册了它（或系统安装了同名字体）才会生效。
+
+* * *
+
+## ✅ 把 `@font-face` 也补全（强烈建议）
+
+把你现有的 3 段改成更标准（路径按你实际位置调整）：
+
+```css
+@font-face{
+  font-family: "EVAMatisseClassic";
+  src: url("../fonts/EVA-Matisse_Classic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face{
+  font-family: "MatisseProEB";
+  src: url("./FOT-MatissePro-EB.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face{
+  font-family: "NotoSerifSCBlack";
+  src: url("./NotoSerifSC-Black.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+然后**再加一段**你的 Heavy（如果你放的是 woff2/otf，路径和 format 对上）：
+
+```css
+@font-face{
+  font-family: "SourceHanSerifCN-Heavy";
+  src: url("./fonts/SourceHanSerifCN-Heavy.woff2") format("woff2");
+  /* 如果你还是 otf，就用：
+     src: url("./fonts/SourceHanSerifCN-Heavy.otf") format("opentype");
+  */
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+```
+
+> `font-weight: 100 900;` 这句很关键：你的 Canvas 代码会用 800/900，不给范围有时会匹配不到。
+
+* * *
+
+## 但我要提醒一句：你这个项目的“生成效果”主要吃的是 Canvas 的 `ctx.font`
+
+即使 CSS 修好了，**Canvas 里如果还是 `${fontName},sans-serif`**，它依旧可能不走你想要的 Heavy 补字（或者补得不稳定）。
+
+你应该把 `document.js` 那行也改成带完整栈：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},"SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+```
+
+* * *
+
+如果你把 `SourceHanSerifCN-Heavy` 字体文件现在放的具体路径（比如 `./fonts/...` 还是同目录）告诉我/贴个 `ls`，我可以把那条 `src: url(...)` 精准写到不会 404 的版本。
+
+## Q: 
+
+
+## A: 
+
+你现在页面“补字还不出来”的核心原因已经不是 CSS 了，而是**它还在请求 `/api/fontmin`，而你这边没有这个接口**，所以一直 404（你截图里两条红错就是它）：
+
+`GET https://yys.im/api/fontmin?... 404`
+
+这会导致：项目想“按输入文字动态生成/裁剪字体（子集字体）”，但拿不到结果，Canvas 渲染链路就缺一环，于是你看到“还是显示不全/不生效”。
+
+* * *
+
+## 你该怎么做（两种选一个）
+
+### 方案 A（最快，推荐）：改用作者提供的在线 fontmin 服务
+
+你 grep 结果里已经有：  
+`// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';`
+
+直接把 `./eva/html/document.js`（以及 `./eva/document.js` 如果页面引用的是它）里的 fontAPI 改成这一条即可。
+
+把这一行：
+
+```js
+let fontAPI = `https://${location.hostname}/api/fontmin`;
+```
+
+改成：
+
+```js
+let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';
+```
+
+然后保存、强刷（Ctrl+F5），你会看到 `/api/fontmin` 404 消失（因为不请求你域名了）。
+
+> 如果你还想走别的公共接口，文件里也有注释：`s6.magiconch.com` 等。
+
+* * *
+
+### 方案 B（完整自建）：你自己实现 `/api/fontmin`
+
+需要 Node/Express 在服务器跑一个接口，再用 Nginx 反代 `/api/` 到 Node。工作量更大，但最可控。
+
+* * *
+
+## 你现在应该改哪个文件？（重要）
+
+你目录里有两份：`./eva/html/document.js` 和 `./eva/document.js`。实际生效的是哪份，取决于 `index.html` 引用了谁。
+
+你用这条确认一下（在服务器执行）：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "document.js" index.html
+```
+
+*   如果引用的是 `document.js`（同目录），改 `eva/html/document.js`
+
+*   如果引用的是 `../document.js` 或 `/eva/document.js`，那两份都改最省事
+
+*   * *
+
+## 你改完后怎么验证成功
+
+打开控制台看请求：
+
+*   不应该再出现 `https://yys.im/api/fontmin... 404`
+
+*   会变成访问 `https://eva-title-server.vercel.app/api/fontmin?...`（应该是 200）
+
+*   * *
+
+另外两条提示：
+
+*   `ERR_BLOCKED_BY_CLIENT`：插件拦统计脚本，无视
+
+*   Canvas2D 性能提示，无视或按之前方式加 `willReadFrequently`
+
+你先把 `fontAPI` 按方案 A 改掉，强刷后如果还有“不匹配文字不补全”，我再带你把“缺字判定只看主字体”的那段逻辑改成“用字体栈判定”，这样就是真正意义上的 fallback 补字了。
+
+## Q: 
+
+这个api用不了
+
+## A: 
+
+懂了：既然外部 `fontmin` API 用不了，那这个项目里**所有依赖 `/api/fontmin` 的“按字生成字体子集”功能都会失败**，控制台就一直 404，也就很难出现你期待的“自动补全缺字”效果。
+
+你现在有两条可走的路：**关掉 fontmin（最快）** 或 **自己在服务器搭一个 `/api/fontmin`（最完整）**。我把两条都给你，按你需求选。
+
+* * *
+
+## 路线 1（推荐，最快能用）：彻底禁用 `/api/fontmin`，只用“字体栈 fallback”来补字
+
+适合：你主要想页面/导出能正常显示，不追求“动态子集化字体”（文件变小、按字下载那种）。
+
+### A. 改 JS：别再请求 fontmin
+
+你 grep 出来 `fontAPI` 在 `eva/html/document.js`（以及可能还有一份 `eva/document.js`）。
+
+把这行（你现在的）：
+
+```js
+let fontAPI = `https://${location.hostname}/api/fontmin`;
+```
+
+改成让它“不可用”，并在调用处直接跳过请求。最省事的方法是：在调用 fontAPI 的函数开头加一个开关：
+
+1）在 `document.js` 顶部加：
+
+```js
+const DISABLE_FONTMIN = true;
+```
+
+2）找到实际请求 fontmin 的函数（一般名字像 `fontmin()` / `getFont()` / `fetchFont()`，你搜索一下）：
+
+```bash
+cd /www/wwwroot/yys.im/eva/html
+grep -n "fontAPI" document.js
+grep -n "fetch(" document.js | head
+```
+
+在那个函数最前面加：
+
+```js
+if (DISABLE_FONTMIN) return null;
+```
+
+这样它就不会再打 `/api/fontmin` 了。
+
+### B. 关键：让 Canvas 用“字体栈”而不是单字体
+
+你已经找到这行：
+
+`./html/document.js:28`
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+把它改成（加入你要的后备字体）：
+
+```js
+ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`;
+```
+
+同理把 `make.js:243` 也加上 fallback 栈（最简单写死）：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px "${_fontFamilyName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+```
+
+> 这样即使主字体没有某些字，Canvas 会自动用你后面的字体把那些字画出来。
+
+### C. 刷新验证
+
+强刷后控制台里应该**不再出现**：
+
+*   `GET https://yys.im/api/fontmin ... 404`
+
+并且缺字会用后备字体显示（你之前看到的 Noto Sans SC 那种现象会更可控）。
+
+* * *
+
+## 路线 2（最完整）：你自己在服务器实现 `/api/fontmin`
+
+适合：你想保留作者功能——按输入文字动态生成子集字体（更小、更“原作”）。
+
+> 这个比路线 1 复杂，但可行。
+
+### A. Node 服务（最小 demo）
+
+在服务器新建目录：
+
+```bash
+mkdir -p /www/wwwroot/yys.im/fontmin-server
+cd /www/wwwroot/yys.im/fontmin-server
+npm init -y
+npm i express cors
+```
+
+创建 `server.js`：
+
+```js
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+
+app.get("/api/fontmin", async (req, res) => {
+  const { name, unicode } = req.query;
+  // 先做占位：告诉前端“我不支持动态子集”，避免 404
+  // 完整实现需要：读取对应字体文件 + 按 unicode 子集化 + 输出 woff2
+  res.status(501).json({ error: "fontmin not implemented", name, unicode });
+});
+
+app.listen(60912, () => console.log("fontmin server :60912"));
+```
+
+启动：
+
+```bash
+node server.js
+```
+
+然后 Nginx 反代 `/api/` 到 60912 端口（宝塔站点配置 `server{}` 里加）：
+
+```nginx
+location ^~ /api/ {
+  proxy_pass http://127.0.0.1:60912;
+  proxy_set_header Host $host;
+}
+```
+
+> 注意：这只是先把 404 变成 501；真正的子集化还需要额外库（fontmin/fonttools 等）和字体文件采集逻辑。实现起来不难，但代码会长很多。
+
+* * *
+
+## 我建议你怎么选
+
+*   **你主要目标是“能显示全、能导出、不报错”**：选 **路线 1**（禁用 fontmin + Canvas 字体栈 fallback）最省事、最稳定。
+
+*   **你要完全复刻作者的“按字生成小字体文件”**：选路线 2，但要多写一段后端逻辑。
+
+*   * *
+
+### 我可以直接帮你改到“路线 1”最小可用版本
+
+你把 `eva/html/document.js` 里**请求 fontAPI 的那一段函数**（包含 `fetch(...)` 的几行，贴 30 行左右上下文）发出来，我就能精确告诉你：该在哪里加 `DISABLE_FONTMIN`、该 return 什么，才能既不报错又不影响其他逻辑。_
+
+## Q: 
+
+现在全部的目录都是/www/wwwroot/yys.im/eva root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# cd /www/wwwroot/yys.im/eva grep -n "fontAPI" document.js grep -n "fetch(" document.js | head 10:// let fontAPI = 'http://192.168.31.7:8003/api/fontmin'; 11://let fontAPI = `https://${location.hostname}/api/fontmin`; 12:let fontAPI = 'https://s6.magiconch.com/api/fontmin'; 13:// fontAPI = 'https://s6.magiconch.com/api/fontmin'; 14:// fontAPI = 'http://localhost:60912/api/fontmin'; 16:// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; 62: fontAPI = 'http://localhost:60912/api/fontmin'; 82: const fontURL = `${fontAPI}?name=${name}&unicode=${unicode}`; 134: console.log(`${fontAPI}?name=${fontFamilyName}&type=woff&unicode=${unicode}`);
+
+## A: 
+
+明白了：你现在实际跑的是 `/www/wwwroot/yys.im/eva/document.js` 这一份，而且它**一定会去请求 fontmin**（第 82 行拼了 `fontURL`）。既然外部 API 用不了，你就要么 **彻底禁用这段请求**，要么 **自己在本机提供 `http://localhost:60912/api/fontmin`**。
+
+我给你最快的“禁用 fontmin + 走本地字体栈 fallback”的改法（不需要后端）。
+
+* * *
+
+## 目标
+
+*   不再请求 `https://s6.magiconch.com/api/fontmin`（也不请求任何 `/api/fontmin`）
+
+*   缺字时交给 Canvas 的字体栈去 fallback（你已放了思源/Noto 等）
+
+*   * *
+
+## 1）在 `document.js` 里加一个开关：禁用 fontmin
+
+编辑 `/www/wwwroot/yys.im/eva/document.js`
+
+在 `fontAPI` 定义附近（比如第 12 行下面）加：
+
+```js
+const DISABLE_FONTMIN = true;
+```
+
+然后找到拼 `fontURL` 的地方（你说第 82 行）附近，应该长这样：
+
+```js
+const fontURL = `${fontAPI}?name=${name}&unicode=${unicode}`;
+```
+
+把“请求 fontURL”的那段逻辑改成：
+
+```js
+if (DISABLE_FONTMIN) {
+  // 直接跳过在线子集字体生成：返回空，让后续走本地字体/系统字体栈
+  return null;
+}
+```
+
+> 你可能会问“return null 会不会报错？”  
+> 如果后面代码把返回值当 URL 用，最稳的方式是：**在调用处判断为空就不要走下载流程**。如果你把 70~110 行贴出来，我可以精确给你怎么改不炸。
+
+* * *
+
+## 2）让 Canvas 真的使用“后备字体栈”
+
+你之前 grep 过 `ctx.font`，在 `/www/wwwroot/yys.im/eva/document.js:28`：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+改成：
+
+```js
+ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`;
+```
+
+这样即使 `fontName`（比如 EVAMatisseClassic）缺字，也会自动用后面的字体补字。
+
+* * *
+
+## 3）把“缺字检测”也改成按字体栈检测（否则它会继续提示/过滤）
+
+你这个项目很可能有 `checkFont()` / `noMatchMojis` 逻辑：它如果只检查主字体，会把字当“不匹配”然后不画。
+
+最小改法是：让检测也用同一条字体栈。比如把检测用到的地方从：
+
+```js
+checkFont(fontName, weight)
+```
+
+改成检测这个栈（示例）：
+
+```js
+checkFont(`"${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`, weight)
+```
+
+> 这一步要看你文件里 `checkFont` 怎么写。你把包含 `checkFont` 的那一段贴出来，我就能给你准确替换点。
+
+* * *
+
+## 你现在先把关键上下文贴一下，我就能给你“一次改完不报错”的补丁
+
+请把 `document.js` **第 70 行到 110 行**（包含 `fontURL` 和它后续 fetch 的那段）粘出来。  
+我会根据你的真实代码结构，给你：
+
+*   该 return 什么（null/空字符串/本地 URL）
+
+*   调用处该怎么判断
+
+*   确保页面不会因为 `return null` 崩掉
+
+*   同时完全消灭 `/api/fontmin` 404
+
+（你不用担心长，我只需要那一小段上下文就够。）
+
+## Q: 
+
+怎么测试上面的api能不嫩用
+
+## A: 
+
+你要测试 “`fontmin` 这个 API 能不能用”，最简单就是**直接用 curl 请求一下**，看它返回的是不是 **200**（以及内容是不是一个字体文件/二进制）。
+
+下面给你 3 种测试方式（从最简单到更准确）。
+
+* * *
+
+## 1）最简单：用 curl 直接打一个最小请求
+
+先随便用几个 unicode（比如汉字“中”是 `4e2d`，也可以用你项目里报错的那串）。
+
+### 测试 s6 接口（你现在配置的）
+
+```bash
+curl -I "https://s6.magiconch.com/api/fontmin?name=EVAMatisseClassic&unicode=4e2d"
+```
+
+你关心的是：
+
+*   状态码是不是 `200`
+
+*   有没有像 `content-type: font/woff2`、`font/woff`、`application/font-woff2` 之类
+
+如果是 `403/404/5xx` 或者卡住，那就基本不可用/被挡了。
+
+* * *
+
+## 2）下载下来看看是不是“真字体文件”
+
+```bash
+curl -L -o /tmp/font.woff2 "https://s6.magiconch.com/api/fontmin?name=EVAMatisseClassic&unicode=4e2d"
+file /tmp/font.woff2
+ls -lh /tmp/font.woff2
+```
+
+正常的话 `file` 会显示类似：
+
+*   `WOFF2 font data` 或 `WOFF font data`
+
+如果显示：
+
+*   `HTML document` / `JSON` / `text/plain`  
+    那就是接口返回了错误页面或报错信息，不是字体文件。
+
+*   * *
+
+## 3）在浏览器里测（你已经在用的方式）
+
+F12 → Network 过滤 `fontmin`  
+点开那条请求，看：
+
+*   **Status** 是否 200
+
+*   **Response** 是否是二进制（或有明显字体数据）
+
+*   **Response Headers** 的 `content-type`
+
+*   * *
+
+## 额外：测试你自己域名的 /api/fontmin（如果你想自建）
+
+```bash
+curl -I "https://yys.im/api/fontmin?name=EVAMatisseClassic&unicode=4e2d"
+```
+
+如果 404，说明你源站还没实现这个接口。
+
+* * *
+
+### 一个小提醒（很常见）
+
+有些 fontmin 服务会：
+
+*   限制跨域/Referer
+
+*   限制频率
+
+*   只允许特定 name  
+    所以即使 `curl` 200，页面 fetch 也可能因为 CORS 报错；反过来 `curl` 403 也可能只是缺少 UA/Referer。
+
+如果你愿意，把你 `curl -I ...` 的输出（完整头部）贴出来，我可以帮你判断到底是：
+
+*   服务挂了
+
+*   被防火墙/限流
+
+*   CORS 问题
+
+*   还是 name/unicode 参数不对
+
+## Q: 
+
+fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; 还能用
+
+## A: 
+
+我这边没法直接替你访问那个 Vercel 接口来“实测它现在是不是活的”，但你可以在你服务器上 **10 秒钟自己验证**它还能不能用——看 HTTP 状态码和返回的是不是字体二进制就行。
+
+## 1）最直接的可用性测试（看状态码）
+
+在服务器执行：
+
+```bash
+curl -I "https://eva-title-server.vercel.app/api/fontmin?name=EVAMatisseClassic&unicode=4e2d"
+```
+
+### 结果怎么判断
+
+*   **200**：基本还能用
+
+*   **404/403/5xx**：不可用或被限制
+
+*   **卡住/超时**：网络到 Vercel 不通/被墙/被拦截
+
+*   * *
+
+## 2）更准确：把返回内容下载下来，看是不是“真字体”
+
+```bash
+curl -L -o /tmp/font.woff2 "https://eva-title-server.vercel.app/api/fontmin?name=EVAMatisseClassic&unicode=4e2d"
+ls -lh /tmp/font.woff2
+file /tmp/font.woff2
+```
+
+### 判断：
+
+*   `file` 显示 **WOFF2 font data** / **WOFF font data** → 真能用
+
+*   显示 **HTML document** / **JSON** / **text** → 返回的是错误页/报错信息（等于不能用）
+
+*   * *
+
+## 3）如果 curl 能用但浏览器还是不行：多半是 CORS
+
+有些接口 curl 访问没问题，但浏览器会因为跨域策略失败。你可以在浏览器 F12 Network 点开那条请求，看响应头有没有：
+
+*   `Access-Control-Allow-Origin: *`（或包含你的域名）
+
+没有的话，前端 fetch 会报 CORS。
+
+* * *
+
+## 结论建议（很现实）
+
+这种“别人部署的 fontmin”接口一般 **不稳定**（可能限流/关停/跨域策略变动）。如果你希望长期稳定：
+
+*   要么 **禁用 fontmin**（不走 API，纯本地字体栈 fallback）
+
+*   要么 **自己在服务器实现 `/api/fontmin`**（最稳）
+
+你把你跑出来的 `curl -I` 输出贴一下，我可以直接告诉你它是“彻底挂了”、还是“限流/403”、还是“CORS 问题”。
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# curl -L -o /tmp/font.woff2 "https://eva-title-server.vercel.app/api/fontmin?name=EVAMatisseClassic&unicode=4e2d" ls -lh /tmp/font.woff2 file /tmp/font.woff2 % Total % Received % Xferd Average Speed Time Time Time Current Dload Upload Total Spent Left Speed 100 2292 100 2292 0 0 4204 0 --:--:-- --:--:-- --:--:-- 4213 -rw-r--r-- 1 root root 2.3K Dec 5 17:54 /tmp/font.woff2 /tmp/font.woff2: Web Open Font Format, TrueType, length 2292, version 1.0
+
+## A: 
+
+能用 ✅——你已经验证到了关键点：它返回的确实是 **WOFF 字体文件**（`file` 显示 _Web Open Font Format, TrueType_），而且成功下载了 2.3KB 的子集字体。
+
+接下来你要做的操作就是把项目里的 `fontAPI` 指到这个地址，并顺手处理两件常见后续问题（HTTPS / CORS / 缓存）。
+
+* * *
+
+## 1）把项目的 fontAPI 改成可用的接口
+
+编辑你正在用的那份 `document.js`（你现在目录统一在 `/www/wwwroot/yys.im/eva`）：
+
+把：
+
+```js
+let fontAPI = 'https://s6.magiconch.com/api/fontmin';
+```
+
+改成：
+
+```js
+let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';
+```
+
+你之前 grep 里还有一行会覆盖：
+
+```js
+fontAPI = 'http://localhost:60912/api/fontmin';
+```
+
+如果你不是本机跑服务端，就把它注释掉或确保它不会执行（否则会把上面改掉）。
+
+* * *
+
+## 2）确认页面实际引用的是哪份 JS（避免改了不生效）
+
+在 `index.html` 看引用路径（在 eva 目录执行）：
+
+```bash
+cd /www/wwwroot/yys.im/eva
+grep -n "document.js" index.html
+```
+
+确保你改的 `document.js` 就是它加载的那份。
+
+* * *
+
+## 3）重载并清缓存（Cloudflare 一定要做）
+
+你站点走 Cloudflare，很容易继续用旧 JS：
+
+*   Cloudflare：Purge Cache（至少清 `/eva/*`）
+
+*   浏览器：Ctrl+F5 强刷（或 DevTools 勾 Disable cache）
+
+*   * *
+
+## 4）验证成功的标志
+
+打开网页 → F12 → Network 过滤 `fontmin`：
+
+*   请求应该变成：  
+    `https://eva-title-server.vercel.app/api/fontmin?...`
+
+*   状态码 **200**
+
+*   不再出现你域名下的 `/api/fontmin 404`
+
+*   * *
+
+## 5）如果还有“字补不出来”，最常见原因是 Canvas 字体栈/权重
+
+即使 fontmin 能用了，Canvas 仍可能因为权重匹配或字体栈只写了 `,sans-serif` 导致看起来没补齐。
+
+你之前那行：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+建议至少改成：
+
+```js
+ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+```
+
+这样：主字体缺字时，才会真的走你要的 Heavy/NotoSerif 兜底（而不是掉到 Noto Sans SC）。
+
+* * *
+
+如果你现在把网页里那条 `fontmin` 请求的 Network 截图发一下（或直接说状态码/是否跨域报错），我可以帮你确认是否还需要处理 CORS 或字体栈这一步。
+
+## Q: 
+
+还是出现了
+
+## A: 
+
+你这张图说明：**页面仍然在请求你自己域名的 `/api/fontmin`**：
+
+`GET https://yys.im/api/fontmin ... 404`
+
+这意味着只有两种可能（基本100%）：
+
+1.  你改的 **不是页面实际加载的那份 JS**（还有另一份 `document.js`/`make.js` 在用旧的 fontAPI）
+
+2.  你的代码里虽然改了 `fontAPI`，但后面又被某段逻辑改回了 `https://${location.hostname}/api/fontmin`（或拼成了域名）
+
+另外 `favicon.ico 404` 无伤大雅，放个 favicon 或忽略就行。
+
+* * *
+
+## 立刻定位：到底是哪一个文件在发 `/api/fontmin`
+
+你不用猜，用 grep 一把梭哈：
+
+```bash
+cd /www/wwwroot/yys.im/eva
+grep -R "location.hostname}/api/fontmin" -n .
+grep -R "/api/fontmin" -n .
+grep -R "fontAPI" -n . | head -n 80
+```
+
+把输出贴出来，我就能指出“哪一行、哪个文件”在把它改回去。
+
+* * *
+
+## 同时做一个最有效的浏览器定位（更快）
+
+在你截图里，`/api/fontmin` 这一条右侧有来源：`eva/?layout=e26:1`  
+你点一下那条错误右侧的链接（`:1`），它会跳到 **Sources** 里显示具体是哪段 JS 触发的（通常会显示 `document.js` 或 `make.js` 的具体行号）。
+
+你看到文件名/行号后告诉我（例如 `document.js:82` 或 `make.js:680`），我就能给你精准改法。
+
+* * *
+
+## 常见“改了还请求本域名”的真正原因
+
+我结合你之前 grep 的结果提醒一下：你文件里出现过这种覆盖逻辑：
+
+* 顶部你改成外部接口
+
+* 但后面又有一段：
+
+  ```js
+  fontAPI = 'http://localhost:60912/api/fontmin';
+  ```
+
+  或者在某个条件下重置回本域名
+
+所以必须把“会覆盖 fontAPI 的那段”也处理掉（注释/删除/改条件）。
+
+* * *
+
+## 临时止血方案（不改逻辑也能立刻不 404）
+
+如果你想马上让 404 消失，Nginx 反代把 `/api/fontmin` 转到可用的 Vercel 接口即可：
+
+在宝塔站点 nginx 配置 `server{}` 里加：
+
+```nginx
+location ^~ /api/fontmin {
+  proxy_pass https://eva-title-server.vercel.app/api/fontmin;
+  proxy_set_header Host eva-title-server.vercel.app;
+}
+```
+
+重载 Nginx 后，即使前端还请求 `https://yys.im/api/fontmin`，也会被你代理到 Vercel 去（不再 404）。
+
+> 这招很猛很省事，适合你不想继续翻前端代码找是哪份 JS 的情况。
+
+* * *
+
+你选一个更快的方式：
+
+*   **想彻底从代码修**：把我上面 3 条 grep 输出贴回来，或告诉我点击报错链接看到的文件名:行号
+
+*   **想立刻止血**：直接用我给的 Nginx `location ^~ /api/fontmin` 反代规则
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# cd /www/wwwroot/yys.im/eva grep -R "location.hostname}/api/fontmin" -n . grep -R "/api/fontmin" -n . grep -R "fontAPI" -n . | head -n 80 ./document.js:11://let fontAPI = `https://${location.hostname}/api/fontmin`; ./document.js:10:// let fontAPI = 'http://192.168.31.7:8003/api/fontmin'; ./document.js:11://let fontAPI = `https://${location.hostname}/api/fontmin`; ./document.js:12:let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./document.js:13:// fontAPI = 'https://s6.magiconch.com/api/fontmin'; ./document.js:14:// fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:16:// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./document.js:64: fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:10:// let fontAPI = 'http://192.168.31.7:8003/api/fontmin'; ./document.js:11://let fontAPI = `https://${location.hostname}/api/fontmin`; ./document.js:12:let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./document.js:13:// fontAPI = 'https://s6.magiconch.com/api/fontmin'; ./document.js:14:// fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:16:// fontAPI = 'https://eva-title-server.vercel.app/api/fontmin'; ./document.js:64: fontAPI = 'http://localhost:60912/api/fontmin'; ./document.js:84: const fontURL = `${fontAPI}?name=${name}&unicode=${unicode}`; ./document.js:136: console.log(`${fontAPI}?name=${fontFamilyName}&type=woff&unicode=${unicode}`);
+
+## A: 
+
+找到了“元凶”✅：虽然你第 12 行已经改成了 Vercel，但 **第 64 行又把 `fontAPI` 覆盖成了本机地址**：
+
+```js
+64: fontAPI = 'http://localhost:60912/api/fontmin';
+```
+
+而你浏览器里看到的是请求 `https://yys.im/api/fontmin`，这通常发生在：前端检测到不在本机时，会把 localhost 替换/拼回域名（或你经过 Cloudflare/HTTPS 混合导致它改用了同源 `/api/fontmin`）。
+
+总之：**必须处理第 64 行覆盖**，否则你上面改成 Vercel 永远会被冲掉。
+
+* * *
+
+## 立刻修复（推荐做法）
+
+编辑 `/www/wwwroot/yys.im/eva/document.js`，把第 64 行这句改掉。
+
+### 方案 A（最简单）：直接注释掉第 64 行
+
+把：
+
+```js
+fontAPI = 'http://localhost:60912/api/fontmin';
+```
+
+改成：
+
+```js
+// fontAPI = 'http://localhost:60912/api/fontmin';
+```
+
+这样就不会再被覆盖，`fontAPI` 会一直保持你第 12 行的：
+
+```js
+let fontAPI = 'https://eva-title-server.vercel.app/api/fontmin';
+```
+
+### 方案 B（更合理）：只在真正本机开发时才用 localhost
+
+把第 64 行外面包个判断（推荐）：
+
+```js
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  fontAPI = "http://localhost:60912/api/fontmin";
+}
+```
+
+线上访问 `yys.im` 就不会切到 localhost 了。
+
+* * *
+
+## 改完后一定要做两件事（不然你还会看到旧行为）
+
+1.  **强刷**：浏览器 Ctrl+F5（或 DevTools 勾 Disable cache）
+
+2.  **Cloudflare 清缓存**（你站点走 CF，很容易还用旧的 document.js）  
+    Purge Cache → 至少清 `/eva/*` 或直接 Purge Everything
+
+* * *
+
+## 验证是否成功
+
+刷新后看 Console / Network：
+
+*   不应再出现 `https://yys.im/api/fontmin ... 404`
+
+*   应该变成请求：  
+    `https://eva-title-server.vercel.app/api/fontmin?...` 且状态 200
+
+*   * *
+
+顺手一提：`favicon.ico 404` 不影响功能，要消掉的话在站点根放一个 `favicon.ico` 就行。
+
+你按上面注释/加判断改完后，如果还出现 `yys.im/api/fontmin`，那就是 Cloudflare 还在缓存旧 JS——直接 purge 一下就会立刻正常。
+
+## Q: 
+
+还有问题
+
+## A: 
+
+行，那我们直接把“还有问题”快速定位掉：你现在最可能遇到的情况就三类——我给你**不需要猜**的排查顺序，你照着做，输出贴回来我就能一把修到位。
+
+* * *
+
+## 1）先确认：现在到底还在不在请求 `yys.im/api/fontmin`？
+
+在服务器上先确认你 `document.js` 第 64 行已经处理了（注释或加判断）：
+
+```bash
+sed -n '55,75p' /www/wwwroot/yys.im/eva/document.js
+```
+
+然后浏览器强刷（Ctrl+F5）后，看控制台/Network 里 `fontmin` 的请求域名是什么：
+
+*   仍是 `https://yys.im/api/fontmin` → **缓存没清干净/没加载到新 JS**
+
+*   变成 `https://eva-title-server.vercel.app/api/fontmin` → **fontAPI 已修好，继续看下一项**
+
+（你也可以在服务器直接 grep 最终值是否还会被改：）
+
+```bash
+grep -n "fontAPI =" -n /www/wwwroot/yys.im/eva/document.js
+```
+
+* * *
+
+## 2）如果 fontmin 域名已经对了，但还是“字不全/补不上”
+
+那几乎一定是 **Canvas 字体栈没加好 或 字体没加载完成就绘制**。
+
+### A. 确认 Canvas 的 `ctx.font` 现在是什么
+
+你之前那行在 `document.js:28`。请贴一下这几行：
+
+```bash
+sed -n '20,40p' /www/wwwroot/yys.im/eva/document.js
+```
+
+我需要确认你是否已经把它改成类似：
+
+```js
+ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack",serif`;
+```
+
+### B. 确认字体文件有没有被成功加载（200）
+
+浏览器 F12 → Network 过滤 `woff2` / `otf`  
+或者服务器上用 curl 直接测（假设你字体在 eva/fonts）：
+
+```bash
+curl -I https://yys.im/eva/fonts/SourceHanSerifCN-Heavy.woff2
+curl -I https://yys.im/eva/fonts/NotoSerifSC-Black.woff2
+```
+
+* * *
+
+## 3）如果报错是“还是 404 但不是 fontmin”
+
+你把控制台最新红色错误（文字或截图）发出来即可。  
+常见的还有：
+
+*   `favicon.ico 404`（可以忽略）
+
+*   某个 `.woff2/.png/.js` 路径不对（我会告诉你应该放哪里/怎么改相对路径）
+
+*   * *
+
+### 你现在直接把这三条命令输出贴我（最省时间）
+
+```bash
+sed -n '55,75p' /www/wwwroot/yys.im/eva/document.js
+sed -n '20,40p' /www/wwwroot/yys.im/eva/document.js
+grep -n "fontAPI =" /www/wwwroot/yys.im/eva/document.js
+```
+
+我看完就能判断你“还有问题”到底是缓存、fontAPI 覆盖、Canvas 字体栈、还是资源路径问题，并给你一套确定可行的修改。
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# ^C root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# sed -n '55,75p' /www/wwwroot/yys.im/eva/document.js let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120; let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150; let debug = /192\\.168/.test(location.origin); if(debug){ // fontWeight = 100; //fontAPI = 'http://localhost:60912/api/fontmin'; haveMatisse = false; // baseFontFamilyName = 'baseSplit,serif'; } const getFontFromText = (name,text,onOver=_=>{})=>{ if(!text) return requestAnimationFrame(onOver); if(haveMatisse) return requestAnimationFrame(onOver); text = text.replace(blockMojiRegex,''); text += '0';
+
+## A: 
+
+看到了：你已经把 **覆盖 fontAPI 的那行注释掉了** ✅（`//fontAPI = 'http://localhost:60912/api/fontmin';`），而且现在 `debug` 只在 `location.origin` 包含 `192.168` 时才会进，所以线上不会走这个分支。
+
+但你这里同时暴露了“为什么你还是没有后备文字效果”的关键原因之一：
+
+```js
+let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120;
+let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150;
+
+const getFontFromText = (name,text,onOver=_=>{})=>{
+    if(!text) return requestAnimationFrame(onOver);
+    if(haveMatisse) return requestAnimationFrame(onOver);
+    ...
+}
+```
+
+### 这段逻辑的含义是：
+
+*   **只要检测到你机器“有 Matisse”**（`haveMatisse=true`），它就**直接跳过** `getFontFromText` 的字体获取/处理流程（通常包括 fontmin 子集化、以及某些 fallback 处理）
+
+*   结果就是：哪怕 Matisse 对某些字缺字，它也可能不会去帮你补（因为它只判断“有没有装/能不能用”，而不是“是否覆盖所有字符”）
+
+也就是说：**“有没有字体”和“有没有某个字形”是两回事**，作者的判断过于粗。
+
+* * *
+
+# 你接下来该怎么改（最小改动，让缺字也能走补字流程）
+
+## 方案 A（最小且有效）：改成“有 Matisse 也要检查是否存在缺字”
+
+思路：只有当 `name` 对当前输入 `text` **全部字符都能画出来** 才跳过；否则继续走后续处理（fontmin / fallback）。
+
+### 1）先找到 `blockMojiRegex`、`noMatchMojis` 或缺字收集的逻辑
+
+你这个文件里肯定有一段把“不匹配文字”统计出来。我们要利用它来判断是否需要补字。
+
+在服务器执行：
+
+```bash
+cd /www/wwwroot/yys.im/eva
+grep -n "noMatch" document.js
+grep -n "checkFont" document.js
+grep -n "blockMojiRegex" document.js
+```
+
+把输出贴我，我就能精确告诉你改哪几行。
+
+* * *
+
+## 方案 B（更粗暴但最快看到效果）：强制让它不要认为“haveMatisse”
+
+也就是让 `getFontFromText` 总是执行（这样它就会去走 fontmin 或补字逻辑）。
+
+直接把这句改成（临时验证用）：
+
+```js
+let haveMatisse = false;
+```
+
+或者把函数里这行注释掉：
+
+```js
+// if(haveMatisse) return requestAnimationFrame(onOver);
+```
+
+这样你马上就能看到：缺字时它会不会去请求 fontmin、会不会补上。
+
+> 如果这样改了“确实补字/不匹配提示变化了”，就证明问题点完全在这个 `haveMatisse` 过早 short-circuit 上。
+
+* * *
+
+# 另外一个你必须确认的点：Canvas 字体栈是否真的加了 fallback
+
+你还没贴 `ctx.font` 的那段（20~40行），如果它仍是：
+
+```js
+ctx.font = `${weight} ${w}px ${fontName},sans-serif`;
+```
+
+那就算你走补字流程，也可能还是补不出来/补得不按你想要的 serif heavy。
+
+你把这段也贴出来（你之前中断了第二条命令），直接跑：
+
+```bash
+sed -n '20,40p' /www/wwwroot/yys.im/eva/document.js
+```
+
+* * *
+
+## 你现在发我两样东西，我就能给你“最终版改法”
+
+1.  `sed -n '20,40p' ...` 的输出（看 ctx.font 有没有加栈）
+
+2.  `grep -n "noMatch\|blockMojiRegex\|checkFont" document.js` 的输出（我定位缺字逻辑）
+
+我会给你一个最小补丁，让：
+
+*   Matisse 存在也不影响缺字补全
+
+*   `/api/fontmin` 不再走你域名
+
+*   Canvas 能按你指定的 fallback 字体栈渲染出完整文字
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# cd /www/wwwroot/yys.im/eva grep -n "noMatch" document.js grep -n "checkFont" document.js grep -n "blockMojiRegex" document.js 344: noMatchMojis(){ 21:const checkFont = (fontName,weight=100)=>{ 55:let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120; 56:let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150; 18:const blockMojiRegex = /\\s/g; 74: text = text.replace(blockMojiRegex,'');
+
+## A: 
+
+很好，定位齐了。现在你“没有后备文字效果”的关键问题基本就是：
+
+1.  `blockMojiRegex` 现在是 **`/\s/g`**（只会去掉空格），根本没有真的“过滤 emoji/特殊字符”。这不是致命，但说明作者逻辑比较随意。
+
+2.  更关键的是：作者的“不匹配文字”判断（`noMatchMojis()`）很可能**只按 Matisse 是否存在**来决定要不要走补字流程，而不是按“这个字有没有字形”。
+
+3.  另外你现在 Canvas `ctx.font` 如果还是 `...,sans-serif`，fallback 会优先掉到系统的 Noto Sans SC，而不是你准备的 serif heavy。
+
+下面给你一个**最小且稳定**的修法：让“缺字时也能走后备字体渲染”，不再被 `haveMatisse` 一票否决。
+
+* * *
+
+# ✅ 第一步：把 Canvas 字体写成真正的字体栈（必须）
+
+你文件里 `ctx.font` 在第 28 行（你之前 grep 出来过），把它改成：
+
+```js
+const fallbackStack = `"SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`;
+ctx.font = `${weight} ${w}px "${fontName}",${fallbackStack}`;
+```
+
+> 这样 Canvas 才会在主字体缺字时自动去后面的字体找字形。
+
+* * *
+
+# ✅ 第二步：让 noMatch 的判断基于“字形是否存在”，而不是 haveMatisse
+
+你现在有：
+
+*   `checkFont()` 在第 21 行
+
+*   `noMatchMojis()` 在第 344 行
+
+思路：在 `noMatchMojis()` 里，不要只用主字体名去测；要用“主字体 + 后备字体栈”去测。只要栈里任意字体能显示，就不算 noMatch。
+
+### 你先做一个最小改动（不需要深入改 checkFont）
+
+在 `noMatchMojis()` 里，把用于检测的字体名从单个 `EVAMatisseClassic` 改成一个栈：
+
+例如把里面类似这种：
+
+```js
+checkFont(fontFamilyName, 800)
+```
+
+替换为：
+
+```js
+checkFont(`${fontFamilyName},SourceHanSerifCN-Heavy,NotoSerifSCBlack,serif`, 800)
+```
+
+> 注意：这里用逗号串起来就行，因为你的 `checkFont` 本来就支持传 `'A,B'` 这种（你第 55 行也是这么传的）。
+
+* * *
+
+# ✅ 你现在只差一个信息：noMatchMojis() 的具体内容
+
+我需要你把 `document.js` 里 `noMatchMojis()` 这一段贴出来（大概 330~380 行左右）。
+
+直接在服务器执行：
+
+```bash
+sed -n '330,390p' /www/wwwroot/yys.im/eva/document.js
+```
+
+我看完后会告诉你：
+
+*   哪一行在用主字体判缺字
+
+*   应该替换成“字体栈判缺字”的精确写法
+
+*   是否还需要把 `if (haveMatisse) return ...` 那个短路逻辑改掉（多数情况下要改）
+
+*   * *
+
+# 顺手：你 CSS 里也有一个明显错误（会导致你以为写了 fallback，其实没生效）
+
+你之前 `html{}` 里写了很多条 `font-family:`，只有最后一条生效。务必只留一条字体栈。
+
+* * *
+
+## 现在请你把这段输出贴出来
+
+```bash
+sed -n '330,390p' /www/wwwroot/yys.im/eva/document.js
+```
+
+我会在你现有代码基础上给你一个“可直接复制粘贴”的最终补丁，让：
+
+*   主字体缺字时能用 Heavy/NotoSerif 补出来
+
+*   noMatch 不再误报/不再把字当作“无解”而不渲染
+
+## Q: 
+
+root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# sed -n '55,75p' /www/wwwroot/yys.im/eva/document.js let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120; let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150; let debug = /192\\.168/.test(location.origin); if(debug){ // fontWeight = 100; //fontAPI = 'http://localhost:60912/api/fontmin'; haveMatisse = false; // baseFontFamilyName = 'baseSplit,serif'; } const getFontFromText = (name,text,onOver=_=>{})=>{ if(!text) return requestAnimationFrame(onOver); if(haveMatisse) return requestAnimationFrame(onOver); text = text.replace(blockMojiRegex,''); text += '0'; root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# ^C root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# cd /www/wwwroot/yys.im/eva grep -n "noMatch" document.js grep -n "checkFont" document.js grep -n "blockMojiRegex" document.js 344: noMatchMojis(){ 21:const checkFont = (fontName,weight=100)=>{ 55:let haveMatisse = checkFont('EVA_Matisse_Classic-EB,MatissePro-EB') > 120; 56:let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150; 18:const blockMojiRegex = /\\s/g; 74: text = text.replace(blockMojiRegex,''); root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# ^C root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# sed -n '20,40p' /www/wwwroot/yys.im/eva/document.js const checkFont = (fontName,weight=100)=>{ const canvas = document.createElement('canvas'); const w = 18; canvas.width = w; canvas.height = w; const ctx = canvas.getContext('2d'); document.body.appendChild(canvas); //ctx.font = `${weight} ${w}px ${fontName},sans-serif`; ctx.font = `${weight} ${w}px "${fontName}","SourceHanSerifCN-Heavy","NotoSerifSCBlack","Noto Serif CJK SC",serif`; ctx.fillStyle = '#000'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.clearRect(0,0,w,w); ctx.fillText( '饑', 0, w root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# ^C root@racknerd-d898d1b:/www/wwwroot/yys.im/eva# sed -n '330,390p' /www/wwwroot/yys.im/eva/document.js return this.layout.inputs.map((input,index)=>{ const {type} = input; if(type==='tab'){ return this.texts[index]; } return textFilter(this.texts[index] || input.placeholder) }); }, allText(){ return this._text.join(','); }, canTc(){ return this.texts.join() !== transformFunc[2](this.texts.join()) }, noMatchMojis(){ return Array.from(new Set(this.allText)).sort().filter(m=>!EVAMatisseClassicMojis.includes(m)) } }, watch:{ config:{ deep:true, handler:'make' }, output(v){ document.documentElement.setAttribute('data-output',!!v); }, // layout:'make', // texts:{ // deep:true, // handler:'make' // }, } }) const getQuerys = _=>{ const GET = {}; let queryString = location.search.slice(1); if(queryString){ let gets = queryString.split(/&/g); gets.forEach(get=>{ let [k,v] = get.split(/=/); GET[decodeURIComponent(k)] = decodeURIComponent(v); }) }; return GET }; let outputCanvas = createCanvas(); let canvas = createCanvas(); const c = async callback=>{ loadFont('notdef','NotDefault.woff2',async _=>{ loadFont('baseSplit','base-split.woff?r=220716',async _=>{ getFontFromText(fontFamilyName,getMoji(),async _=>{ layouts.slice().sort(_=>-1).forEach((layout,index)=>{ let texts = [ // '使徒', // '襲来',
+
+## A: 
+
+你现在“后备字体明明在字体栈里，但还是不显示/提示不匹配”的**真正原因**，就藏在你贴出来的这句里：
+
+```js
+noMatchMojis(){
+  return Array.from(new Set(this.allText)).sort().filter(m=>!EVAMatisseClassicMojis.includes(m))
+}
+```
+
+它的逻辑是：**只要这个字不在 `EVAMatisseClassicMojis`（EVA 主字体字库列表）里，就直接判定“不匹配”**。  
+这跟你有没有设置 `"SourceHanSerifCN-Heavy"` 后备字体 **完全无关**。
+
+更要命的是：很多项目会在后续流程里**把“不匹配字”从渲染/导出字符集里剔除**（比如 `getMoji()` 只返回匹配字），这样你就算 Canvas 字体栈写得再完美，字也根本没机会画出来。
+
+你已经把 `checkFont` 的 `ctx.font` 改成字体栈了 ✅（这一步对 Canvas 很重要），但现在还需要把 `noMatchMojis()` 改成“有后备字体时不要拦截”。
+
+* * *
+
+## ✅ 最快修复（推荐）：只要检测到有思源宋体 Heavy，就不要把字算作 noMatch
+
+你已经有这行检测：
+
+```js
+let haveSourceHanSerifCNHeavy = checkFont('SourceHanSerifCN-Heavy',800) > 150;
+```
+
+那就直接用它来放行。把 `noMatchMojis()` 改成这样：
+
+```js
+noMatchMojis(){
+  // 如果有后备字体（思源宋体 Heavy），就不要用 EVA 字库列表去“封杀”
+  if (haveSourceHanSerifCNHeavy) return [];
+  return Array.from(new Set(this.allText)).sort().filter(m=>!EVAMatisseClassicMojis.includes(m));
+}
+```
+
+### 一条命令改（用 sed 精准替换）
+
+在服务器执行：
+
+```bash
+sed -i 's/noMatchMojis(){[[:space:]]*return Array.from(new Set(this.allText)).sort().filter(m=>!EVAMatisseClassicMojis.includes(m))[[:space:]]*}/noMatchMojis(){\n            if(haveSourceHanSerifCNHeavy) return [];\n            return Array.from(new Set(this.allText)).sort().filter(m=>!EVAMatisseClassicMojis.includes(m))\n        }/g' /www/wwwroot/yys.im/eva/document.js
+```
+
+然后检查一下是否替换成功：
+
+```bash
+grep -n "noMatchMojis" -n /www/wwwroot/yys.im/eva/document.js -A5
+```
+
+* * *
+
+## ✅ 重要：改完要清 Cloudflare/浏览器缓存
+
+你站点走 Cloudflare，JS 非常容易被缓存。做两步：
+
+1.  Cloudflare → Purge Cache（至少 `/eva/*`）
+
+2.  浏览器 Ctrl+F5 强刷（或 DevTools 勾 Disable cache）
+
+* * *
+
+## 为什么这招有效？
+
+*   以前：字只要不在 `EVAMatisseClassicMojis` 就被判“noMatch”，很可能被剔除，**后备字体没有上场机会**。
+
+*   现在：只要检测到你装/引入了 `"SourceHanSerifCN-Heavy"`，就不再拦截，字会进入渲染流程 → Canvas 用你设置的字体栈自动补字。
+
+*   * *
+
+## 如果你还想更“严谨”（可选）
+
+现在这版是“只要有 Heavy 就全部放行”。更严格的做法是：对每个字判断 Heavy 是否真的能渲染（逐字测 glyph），但那需要额外写一个“逐字测字形”的函数，改动会大一些。你先把上面这个修好，基本就能看到你想要的后备效果了。
+
+你改完刷新后，如果“不匹配文字”的提示消失了但某些字仍空白，把那个具体字发我，我再教你怎么做逐字检测/或检查字体文件路径 200。
+
+Network connection lost. Attempting to reconnect…
+
+---
+#以上部分已经偏离方向
+在第二天，我有尝试重新修改  
+结果喜人  
+
+## Q: 
+
+eva-title-main.zip
+
+现在的问题是 有一些字打不出来 可能是由于字体的限制 字库里没有字 所以用了后备字体 但是也没效果 哪里出现了问题
+
+## A: 
+
+你描述的现象（有些字“打/显示不出来”，加了后备字体也没用）在你这个项目里**最常见的根因其实不是 CSS 的 fallback 顺序**，而是：**那些字根本没被任何“实际加载成功”的字体覆盖到**——尤其是你在本地打开或没跑后端时。
+
+我看了你压缩包里的代码（`document.js / make.js / document.css`），这里有几处非常关键的点：
+
+* * *
+
+## 1) 你的“补字机制”依赖 `/api/fontmin`，但很多情况下它实际上不可用
+
+`document.js` 里：
+
+```js
+let fontAPI = `https://${location.hostname}/api/fontmin`;
+```
+
+这意味着它会向“当前域名”请求一个接口来按需生成子集字体。
+
+**问题：**
+
+*   如果你是直接双击 `index.html` 用 `file://` 打开的，`location.hostname` 为空，最后会变成 `https:///api/fontmin`（无效），动态补字永远加载不到。
+
+*   如果你在本地起了静态服务器但没有对应的 `/api/fontmin` 服务端接口，也同样会加载失败（代码里 catch 了错误，不一定会明显报出来）。
+
+**怎么确认：**  
+打开浏览器 DevTools → Network，过滤 `fontmin` 或 `api/fontmin`，看是不是 404/ERR_NAME_NOT_RESOLVED/CORS 等。
+
+**怎么修：**  
+开发环境直接把 `fontAPI` 指向一个确实存在的服务（你代码里已经给了示例）：
+
+```js
+// document.js
+let fontAPI = 'http://localhost:60912/api/fontmin';
+// 或者用你注释里的线上：
+let fontAPI = 'https://s6.magiconch.com/api/fontmin';
+```
+
+以及**不要用 file:// 方式打开**，至少用一个静态服务器跑起来（例如 `vite` / `http-server` / nginx）。
+
+* * *
+
+## 2) 你以为加了“后备字体”，但实际后备字体可能根本没覆盖那些字
+
+你 `document.css` 里写了：
+
+```css
+font-family:
+  EVAMatisseClassic,
+  MatisseProEB, 
+  NotoSerifSCBlack,
+  SourceHanSerifCN-Heavy,
+  serif;
+```
+
+但注意两件事：
+
+### A. `SourceHanSerifCN-Heavy` 没有被 @font-face 引入
+
+CSS 里没有对应的 `@font-face`，所以它只有在**用户系统里刚好装了**才会生效。
+
+### B. 你带的 `NotoSerifSC-Black.woff2` 极可能是“子集/很小的一部分”
+
+你这个 woff2 只有几十 KB，基本不可能是完整中文字库，所以很多字仍然会缺。
+
+\*\*结论：\*\*fallback “写了”不等于 fallback “能显示”。只要后备字体不含这个字，照样是空白/豆腐块。
+
+* * *
+
+## 3) 这项目实际绘制文字主要走 Canvas，缺字时只能靠“已加载字体”兜底
+
+`make.js` 里 canvas 用的字体串是：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+```
+
+其中 `baseFontFamilyName` 包含：
+
+```js
+'EVA_Matisse_Classic-EB,MatissePro-EB,baseSplit,notdef,SourceHanSerifCN-Heavy,serif'
+```
+
+并且它确实会在启动时加载两个字体文件：
+
+```js
+loadFont('notdef','NotDefault.woff2', ...)
+loadFont('baseSplit','base-split.woff?...', ...)
+```
+
+所以最终能兜底的主要是：
+
+*   `EVAMatisseClassic`（如果成功加载/系统安装/或通过 fontmin 得到）
+
+*   `baseSplit`
+
+*   `notdef`
+
+*   系统 serif /（以及你系统有没有装 SourceHanSerifCN-Heavy）
+
+**如果你的字不在 baseSplit 子集里，而 `/api/fontmin` 又没工作**，那就会出现你说的：怎么加 fallback 都没效果。
+
+* * *
+
+# 最短解决路径（我建议你按这个顺序做）
+
+## Step 1：先把页面跑在服务器上 + 修正 fontAPI
+
+*   不要 file:// 打开
+
+*   `fontAPI` 指到一个真的能用的 fontmin 服务（本地或线上）
+
+这是最接近“立刻能补字”的修法。
+
+## Step 2：想彻底离线/不依赖后端，就换一份“真的包含全部汉字”的后备字体
+
+例如引入完整的思源宋体/思源宋体 Heavy（体积会很大），或者你自己用 fontmin/pyftsubset 预先裁剪一个“你业务所需字符集”的 woff2。
+
+（你现在的 `NotoSerifSC-Black.woff2` 太小了，基本肯定不够。）
+
+## Step 3（可选但很关键）：别用一个“固定名单”去判断要不要补字
+
+`getFontFromText()` 里会做 `diffDefaultMoji(text)`，如果你的 `defaultMoji` 列表假设“这些字肯定有”，但现实里你的本地字体并没有，那它就不会去请求补字，导致缺字永远缺。
+
+最粗暴的验证办法：临时注释掉 `diffDefaultMoji` 那行，看看缺字是否立刻能通过 fontmin 补齐。
+
+* * *
+
+如果你愿意把“打不出来”的具体字符发我 3~5 个，以及你是 **file:// 打开**还是 **跑了站点**、Network 里 `/api/fontmin` 的状态（200/404/失败原因），我可以直接告诉你是哪一条命中，以及给你一份最小改动的补丁代码。
+
+## Q: 
+
+fontAPI已经修改
+
+## A: 
+
+好，那说明 **fontAPI 这块你已经处理了**，接下来就要查另外两条线了：
+
+> 这些字是：  
+> 1）**字体根本没有**，所以谁都显示不出来  
+> 2）**接口/加载逻辑有问题**，虽然有字库但没用上
+
+我给你一个“排查顺序”，你按步骤走，很快就能定位到是哪一条。
+
+* * *
+
+## Step 1：先看“系统能不能显示这些字”
+
+随便开一个新的 `test.html`，内容写得尽量简单一点，比如：
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-size: 40px;
+        font-family: system-ui, "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    这里打上那些【显示不出来的字】比如：𪚥𫠣𠮷（只是举例）
+  </body>
+</html>
+```
+
+用浏览器打开：
+
+* ✅ **如果这里也显示不出来**（是方框/空白）：  
+  那就是 **你系统里根本没有包含这些字的字体**。  
+  👉 不管你在项目里怎么写 `font-family` / fallback / fontAPI，都没救。
+
+  解决办法只有两条：
+
+  1.  在系统里安装能覆盖这些字的字体（比如完整版思源宋体/黑体、部分日文字体等），然后项目里把它加到 `font-family` 里；
+
+  2.  或者直接在项目里放入一份“真的包含这些字”的 woff2，当成后备字体。
+
+* ✅ **如果这里能正常显示**：  
+  那说明系统字体是有这些字的，**问题出在你这个 EVA 项目的字体逻辑上**，继续看下面。
+
+* * *
+
+## Step 2：确认 `/api/fontmin` 真的给你生成了含这些字的字体
+
+1.  打开你的 EVA 页面 → 打开 DevTools → Network 面板
+
+2.  在页面里输入/显示你那几个“有问题的字”，让它触发字体生成
+
+3.  在 Network 里搜 `fontmin` 或 `api/fontmin`
+
+看两件事：
+
+### 2.1 看请求有没有发出去、返回是不是 200
+
+*   没有请求 / 或者 404 / CORS 错误 → 问题还在“调用逻辑层”，接口根本没工作
+
+*   200 OK → 再往下看
+
+### 2.2 看返回的 CSS / 字体名是否和你用的一致
+
+一般 fontmin 会返回一段类似这样的东西（可能是 CSS 或链接）：
+
+```css
+@font-face {
+  font-family: 'EVAMatisseClassic';
+  src: url(https://....woff2) format('woff2');
+}
+```
+
+你要确保：
+
+* `font-family:` 这里的名字，**和你在 CSS/Canvas 里用的是同一个字符串**，比如 `EVAMatisseClassic`
+
+* Canvas 那边写的是类似：
+
+  ```js
+  ctx.font = `${fontWeight} ${fontSize}px EVAMatisseClassic, baseSplit, notdef, serif`;
+  ```
+
+如果 fontmin 返回的是别的名字（比如 `'subsetFont_xxx'`），你又在代码里写 `EVAMatisseClassic`，那浏览器会当成两个不同字体：  
+🔸 子集字体加载了，但 **根本没被用到**。
+
+* * *
+
+## Step 3：检查“文字 -> 调用 fontmin”这一步是不是漏了
+
+你这个项目里有一段逻辑大概是这样的（名字可能略有出入）：
+
+```js
+// 伪代码，只是说明逻辑
+const textToRender = collectTextFromPage();   // 收集要渲染的字
+const needFontChars = diffDefaultMoji(textToRender); // 去掉“默认字”
+if (needFontChars.length) {
+  getFontFromText(needFontChars);            // 调接口 fontAPI
+}
+```
+
+这里有个常见坑：  
+**`diffDefaultMoji` 认为这些字“默认就有”，于是压根不调用 fontAPI。**
+
+如果你的本地环境里并没有预装那些默认字体，那就会出现：
+
+*   逻辑以为：这些字不用补 → 不调用 `/api/fontmin`
+
+*   实际上：本地字体也没有 → 结果就是你看到的“怎么都打不出来”
+
+你可以简单粗暴地测试一下（临时改一下就行）：
+
+```js
+// 把 diffDefaultMoji 直接改成不做判断，全部交给 fontmin
+function diffDefaultMoji(text) {
+  return text;  // 别过滤，直接全送去接口
+}
+```
+
+或在调用地方写死一串你有问题的字符：
+
+```js
+getFontFromText("你那几个打不出来的字");
+```
+
+只要这样一改：
+
+*   ✅ 如果那些字突然能显示了 → 说明之前就是被 `diffDefaultMoji` 过滤掉了
+
+*   ❌ 如果仍然不行 → 问题要么在 fontmin 返回的字体不含这些字，要么是 fallback 使用顺序有问题（看 Step 4）
+
+*   * *
+
+## Step 4：确认 fallback 字体真的“包含这些字”+ 顺序正确
+
+你之前说**给了后备字体也没效果**，最大可能是这两种：
+
+1.  后备字体本身就是子集，没包含这些字（例如你带的 `NotoSerifSC-Black.woff2` 很小，几乎肯定不是完整字库）
+
+2.  @font-face 定义名字不一致 / 优先级被前面一个“不包含这些字”的字体盖掉了
+
+举个你可以参考的写法：
+
+```css
+@font-face {
+  font-family: 'EVA_Matisse_Classic-EB';
+  src: url('./EVA_Matisse_Classic-EB.woff2') format('woff2');
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: 'EVA_Fallback_Full';
+  src: url('./YourFullCJKFont.woff2') format('woff2'); /* 这份要确保真的含这些字 */
+}
+
+/* 画布 / 文本用的 font-family 顺序 */
+.title-text {
+  font-family:
+    EVA_Matisse_Classic-EB,   /* 先用主字体 */
+    EVA_Fallback_Full,        /* 主字体没有就用这个 */
+    system-ui,
+    "Microsoft YaHei",
+    "PingFang SC",
+    sans-serif;
+}
+```
+
+关键点：
+
+* `EVA_Fallback_Full` 对应的 woff2 必须是“完整或包含那几个问题字符”的版本
+
+* 并且在 Canvas 的 `ctx.font` 里也要出现这个名字，例如：
+
+  ```js
+  ctx.font = `900 ${fontSize}px EVA_Matisse_Classic-EB, EVA_Fallback_Full, system-ui, sans-serif`;
+  ```
+
+* * *
+
+## 总结一下你现在可以立刻做的三件事
+
+1.  **先验证系统能不能显示那几个字**
+
+    *   如果系统都不行 → 去找/安装一个支持这些字的字体（或放进项目）
+
+2.  **在 Network 里确认 `/api/fontmin` 请求 + 返回名字**
+
+    *   有没有请求
+
+    *   返回里的 `font-family` 是否跟你使用的一致
+
+3.  **暂时关闭 `diffDefaultMoji` 的过滤，强制让 fontmin 为这些字生成子集**
+
+    *   能显示 → 调用逻辑的问题
+
+    *   还是不能 → 字体文件里确实没有那些字 or fallback 顺序/命名问题
+
+如果你方便的话，可以随手贴 2～3 个“打不出来的字”（直接发字符就行，不需要截图），我可以帮你判断更大可能是哪一种（罕见汉字 / CJK 扩展区导致的，还是典型的逻辑问题），然后写一版更精准的补丁给你。
+
+## Q: 
+
+
+## A: 
+
+你现在这个问题，首先不是字体，而是：**Vue 根本没加载成功，所以整套应用逻辑都挂了**。
+
+从你截图里可以看到几件事：
+
+1.  `GET https://yys.im/vue.2.6.11.min.js net::ERR_ABORTED 404 (Not Found)`
+
+2.  `Uncaught ReferenceError: Vue is not defined`
+
+    *   出现在 `ui-tabs.vue.js`
+
+    *   出现在 `ui-switch.vue.js`
+
+    *   出现在 `document.js:248`（`new Vue({...})` 那里）
+
+也就是说：
+
+* `index.html` 里这行脚本：
+
+  ```html
+  <script src="/vue.2.6.11.min.js"></script>
+  ```
+
+  请求的是 **站点根目录** 的 `/vue.2.6.11.min.js`，  
+  但你的站点根目录里并没有这个文件 → 404
+
+* 因为 Vue 没加载，全局变量 `Vue` 不存在，  
+  后面的 `ui-tabs.vue.js`、`ui-switch.vue.js`、`document.js` 里一调用 `new Vue(...)` 就直接报错，  
+  后续所有依赖 Vue 的逻辑（包括生成画布、调用 fontAPI 做补字）都不会执行。
+
+> 所以你看到的“有的字出不来”，很可能本质是：  
+> **整个渲染逻辑挂了，Canvas 根本没有正常重绘。**
+
+* * *
+
+## 怎么修
+
+### 方案 1：用官方 CDN 加载 Vue（简单粗暴）
+
+直接改 `index.html` 里这行：
+
+```html
+<script src="/vue.2.6.11.min.js"></script>
+```
+
+改成：
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.11/dist/vue.min.js"></script>
+```
+
+保存后刷新页面，重新打开控制台看：
+
+*   不再出现 `Vue is not defined`
+
+*   不再有 `vue.2.6.11.min.js 404`
+
+这时再测试你之前那些「打不出来的字」，看看是否正常。
+
+* * *
+
+### 方案 2：本地放一份 vue.2.6.11.min.js
+
+如果你想**完全本地化**而不是依赖 CDN，那就：
+
+1. 去官方 CDN 下载 Vue 2.6.11：
+
+   *   比如从 jsdelivr / unpkg 下载 `vue.min.js`
+
+2. 重命名为 `vue.2.6.11.min.js`，和 `index.html` 放在**同一目录**
+
+3. 把 `<script>` 改成相对路径（避免再请求到站点根目录）：
+
+   ```html
+   <script src="./vue.2.6.11.min.js"></script>
+   ```
+
+只要这个文件在同一目录里，就不会再 404，`Vue` 就会正常存在。
+
+* * *
+
+### 另外两个报错说明
+
+*   `https://static.cloudflareinsights.com/beacon.min.js net::ERR_BLOCKED_BY_CLIENT`  
+    这个大概率是你浏览器/插件拦截了统计脚本，**可以忽略**。
+
+*   其余 `Vue is not defined`，只要上面把 Vue 加载问题解决，就会一起消失。
+
+*   * *
+
+## 接下来你可以这样做
+
+1.  **先修好 Vue 的加载**（用上面任意一个方案）。
+
+2.  刷新页面，看控制台是否只剩一些字体/网络相关请求，而没有 `Vue is not defined`。
+
+3.  再看你之前那些「打不出来的字」是否已经正常；如果还有单独的“少数字缺字”的情况，再回到我们前面说的 Step 1–4 查字体和 fontAPI。
+
+你先把 Vue 这块改好，如果改完后还有某几个具体字还是出不来，可以直接把那几个字发给我，我再结合现在的日志帮你进一步定位。
+
+## Q: 
+
+现在api问题解决了 vue也解决了
+
+## A: 
+
+看截图现在整体已经跑起来了 🎉（Vue 报错没了、font API 也在跑），但画面里只出了“硅”，后面的“锗”没画出来——说明现在的问题已经收窄到**字体覆盖 + Canvas 用的 font-family** 这块了。
+
+关键点有两个：
+
+1.  你在 CSS 里加的后备字体（`NotoSerifSCBlack` 之类）**不会自动作用到 Canvas**。  
+    Canvas 里是用 JS 手动写 `ctx.font = ...` 的，它有自己的一套 `font-family` 字符串。
+
+2.  Canvas 里目前的字体链里，前几个字体（EVA/Matisse + baseSplit/notdef）**其实并不包含“锗”这个字**，而且还会“挡住”后面的系统字体 fallback，所以就什么都看不到。
+
+* * *
+
+## 1. 看看当前 Canvas 用的字体链
+
+在你的项目里（我打开了你的 `make.js`），有这一段：
+
+```js
+let fontFamilyName = 'EVAMatisseClassic'
+const engFontFamilyName = `"Times New Roman"`
+
+let baseFontFamilyName = 'EVA_Matisse_Classic-EB,MatissePro-EB,baseSplit,notdef,SourceHanSerifCN-Heavy,serif';
+```
+
+后来画字的时候会用到类似：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${fontFamilyName},${baseFontFamilyName}`;
+```
+
+所以实际 Canvas 的 font-family 顺序是：
+
+`EVAMatisseClassic, EVA_Matisse_Classic-EB, MatissePro-EB, baseSplit, notdef, SourceHanSerifCN-Heavy, serif`
+
+问题在这儿：
+
+*   `EVAMatisseClassic / MatissePro-EB`：这是日文字体，很多简体字（比如“锗”）本来就没有。
+
+*   `baseSplit` / `notdef`：这是项目自带的辅助字体，用来画分拆笔画或占位，**很可能对很多字没有正常字形**，甚至只给一个空框/空白。
+
+*   因为 `baseSplit` / `notdef` 在 `SourceHanSerifCN-Heavy` 和 `serif` 前面，只要它们“声称自己有这个字”，系统就不会再往后 fallback 到系统自带的中文字体了。
+
+结果就是：“锗” 这种 EVA/Matisse 没有、baseSplit/notdef 也没的字，就直接画不出来。
+
+* * *
+
+## 2. 把真正的中文字体放到 Canvas 的后备里（而且要在 baseSplit/notdef 之前）
+
+你有两种思路：
+
+### 方案 A：用系统里的中文字体兜底（最简单）
+
+直接改 `make.js` 里这行：
+
+```js
+let baseFontFamilyName = 'EVA_Matisse_Classic-EB,MatissePro-EB,baseSplit,notdef,SourceHanSerifCN-Heavy,serif';
+```
+
+改成类似这样（示例，可以按你的系统字体调整）：
+
+```js
+let baseFontFamilyName =
+  'EVA_Matisse_Classic-EB,' +
+  'MatissePro-EB,' +
+  '"Microsoft YaHei",' +      // Windows 常见
+  '"SimSun",' +               // 宋体
+  '"PingFang SC",' +          // macOS 常见
+  'SourceHanSerifCN-Heavy,' + // 如果你系统装了思源宋体
+  'serif,' +
+  'baseSplit,' +
+  'notdef';
+```
+
+几点说明：
+
+* **把真正的中文字体放在 `baseSplit` / `notdef` 前面**，这样：
+
+  *   EVA/Matisse 没这个字 → 系统优先用 YaHei / 宋体 / PingFang / 思源
+
+  *   只有当系统里真的什么字体都没有这个字时，才会落到最后的 `baseSplit` / `notdef`
+
+* 字体名字要和系统里实际安装的保持一致；你可以打开一个新页面测一下：
+
+  ```css
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  ```
+
+  看“锗”是不是能正常显示。
+
+> 这样做之后，“硅” 仍然用 EVA/Matisse 的样式，“锗” 会退到你指定的中文字体上，至少不会消失。
+
+* * *
+
+### 方案 B：自己准备一份“全字库”的后备字体文件
+
+如果你不想依赖系统字体，而是希望打包在项目里：
+
+1. 找一份覆盖完整简体字的字体（比如思源宋体 Source Han Serif CN），用字型子集工具（fontmin/pyftsubset 或在线字体子集化工具）裁一份 woff2。
+
+2. 在 `document.css` 里引入：
+
+   ```css
+   @font-face {
+     font-family: EVAChineseFallback;
+     src: url('./YourFullCJKFont.woff2') format('woff2');
+   }
+   ```
+
+3. 然后在 `make.js` 里把它加进 `baseFontFamilyName`，同样放到 `baseSplit` / `notdef` 前面：
+
+   ```js
+   let baseFontFamilyName =
+     'EVA_Matisse_Classic-EB,' +
+     'MatissePro-EB,' +
+     'EVAChineseFallback,' +
+     'serif,' +
+     'baseSplit,' +
+     'notdef';
+   ```
+
+* * *
+
+## 3. 记住：Canvas 用的是 `make.js` 里的字体串，改纯 CSS 不会生效
+
+你之前说“已经加后备字体，但是没效果”，大概率是：
+
+*   你改的是 `document.css` 的 `font-family`，这只影响普通 DOM 文本；
+
+*   但画面上的大字是 `canvas` 画出来的，它完全听 `make.js` 里的 `ctx.font = ...`，不会看 CSS 的 `font-family`。
+
+所以这次你只要：
+
+1.  修改 `make.js` 中 `baseFontFamilyName`，把真正有字的中文字体放在 `baseSplit` / `notdef` 前面；
+
+2.  保存、刷新，再在输入框里填 `硅锗` 看一下；
+
+基本就能看到“锗”出现了（样式可能和 EVA 字体略有差别，但至少不会消失）。
+
+如果你改完之后，“锗” 还是不显示，那基本就说明：  
+当前你指定的那些中文字体里也没有“锗”这个字，那就需要按方案 B 找一份\*\*确认包含“锗”\*\*的字体文件，加进来做兜底。
+
+## Q: 
+
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`; 怎么改
+
+## A: 
+
+好，直接告诉你这行怎么改 👍
+
+目标：**在 Canvas 的字体链里，把真正的中文字体放在 `baseSplit` / `notdef` 前面**，这样像“锗”这种字就能退到系统中文字体上显示。
+
+### 写法 1：只改这一行（最直观）
+
+把你现在的：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+```
+
+改成（注意有双引号和顺序）：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},
+  "Microsoft YaHei",
+  "PingFang SC",
+  "SimSun",
+  "Source Han Serif CN",
+  serif,
+  baseSplit,
+  notdef`;
+```
+
+> 解释：
+>
+> *   先用 `_fontFamilyName`（EVAngelion 那个主字体）
+>
+> *   然后用系统里的几个常见中文字体兜底
+>
+> *   最后才是 `baseSplit` / `notdef`
+
+字体名可以根据你电脑实际有的来改，比如 Windows 上 `"Microsoft YaHei" / "SimSun"`，mac 上 `"PingFang SC"` 等。
+
+* * *
+
+### 写法 2：保持 `baseFontFamilyName` 变量（代码更整洁）
+
+上面那行保持不动：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+```
+
+只要把前面定义的 `baseFontFamilyName` 改一下，比如：
+
+```js
+// 原来可能是这样的：
+let baseFontFamilyName = 'EVA_Matisse_Classic-EB,MatissePro-EB,baseSplit,notdef,SourceHanSerifCN-Heavy,serif';
+
+// 改成：
+let baseFontFamilyName =
+  '"Microsoft YaHei",' +
+  '"PingFang SC",' +
+  '"SimSun",' +
+  '"Source Han Serif CN",' +  // 如果你没有这字体，可以删掉
+  'serif,' +
+  'baseSplit,' +
+  'notdef';
+```
+
+> 注意顺序：  
+> 中文字体 → `serif` → `baseSplit` → `notdef`
+
+* * *
+
+改完保存，刷新页面，再在输入框里输入 `硅锗` 测一下。  
+如果“锗”还是不出来，很大概率是：你机器上当前这些字体也没有“锗”，那就需要额外加一份\*\*确认包含“锗”\*\*的 WOFF 字体做兜底，我再帮你写 @font-face 的版本。
+
+## Q: 
+
+SourceHanSerifCN-Heavy.ttf
+
+这份包含 钙 这个字吗 这份汉字全吗
+
+## A: 
+
+我刚刚把你传上来的 **`SourceHanSerifCN-Heavy.ttf`** 真机检了一下：
+
+*   ✅ **“钙” 这个字是有的**  
+    Unicode 编码是 U+9499，在这份字体的 cmap 里确实存在，所以用这份字体渲染“钙”没有问题。
+
+*   ✅ **常用简体汉字基本是全的**  
+    这份是思源宋体的简体中文子集（Source Han Serif CN Heavy），覆盖了整块 CJK 统一表意文字区（U+4E00–9FFF）里的绝大多数汉字——也就是常见简体、繁体常用字基本都在。
+
+*   但要注意：
+
+    *   这不等于“整个 Unicode 所有汉字都全了”。一些非常冷门的扩展区（如 CJK Ext. B、C、D… 在 U+20000 以后的那些生僻字），任何常规桌面字体都不一定全。
+
+    *   对你现在这种标题生成用途来说，**日常会用到的字几乎肯定都覆盖了**，包括各种元素名：“硅、锗、钙、镁、铝、钠、钾……”这种没问题。
+
+如果你想把它当作 Canvas 的兜底字体，可以这样写（示例）：
+
+```css
+@font-face {
+  font-family: "SourceHanSerifCN-Heavy";
+  src: url("./SourceHanSerifCN-Heavy.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+}
+```
+
+然后在 `make.js` 里把它加到字体链里（在 `baseSplit` / `notdef` 前面）：
+
+```js
+let baseFontFamilyName =
+  '"SourceHanSerifCN-Heavy",' +
+  '"Microsoft YaHei",' +
+  '"PingFang SC",' +
+  'serif,' +
+  'baseSplit,' +
+  'notdef';
+```
+
+这样像“钙”这种字就会优先用思源宋体来兜底显示了。
+
+## Q: 
+
+为什么还是显示不了 钙
+
+## A: 
+
+先说结论：  
+**你的 `SourceHanSerifCN-Heavyall` 这份字体里是有「钙」的，但 Canvas 现在其实没用上它，所以「钙」还是画不出来。**  
+你已经把 @font-face 和 `baseFontFamilyName` 都写进去了，但顺序和名字还有点小坑。
+
+我一步一步给你一个**几乎必定能跑通的改法**，你照着改就行。
+
+* * *
+
+## 1. 确保 @font-face 写法没问题
+
+`document.css` 里这样写就可以（你已经差不多了，只是我补上 format）：
+
+```css
+@font-face {
+  font-family: SourceHanSerifCN-Heavy;
+  src: url('./SourceHanSerifCN-Heavy.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: SourceHanSerifCN-Heavyall;
+  src: url('./SourceHanSerifCN-Heavyall.ttf') format('truetype');
+}
+```
+
+> 确认：`document.css`、`SourceHanSerifCN-Heavyall.ttf` 在**同一个目录**，从你截图看是对的。
+
+你也可以在 CSS 里用它做个简单测试（只是辅助判断）：
+
+```css
+.test-font {
+  font-family: SourceHanSerifCN-Heavyall;
+  font-size: 60px;
+}
+```
+
+HTML 里加一行：
+
+```html
+<div class="test-font">钙</div>
+```
+
+如果这里“钙”是能正常显示的，说明 **字体文件没问题，问题只在 Canvas 那边**。
+
+* * *
+
+## 2. 把 Canvas 的字体链改干净
+
+现在你 `make.js` 里是这样（截图里）：
+
+```js
+let fontFamilyName = 'EVAMatisseClassic'
+const engFontFamilyName = `"Times New Roman"`
+
+let baseFontFamilyName =
+  'EVA_Matisse_Classic-EB,MatissePro-EB,SourceHanSerifCN-Heavy,NotoSerifSC-Black,serif,SourceHanSerifCN-Heavyall,baseSplit,notdef';
+```
+
+这里有两个问题：
+
+1.  `EVA_Matisse_Classic-EB` 和 `MatissePro-EB` 没必要在 `baseFontFamilyName` 再写一次（它们已经在 `_fontFamilyName` 里了），多写只会让 fallback 更乱。
+
+2.  我们希望「钙」**优先使用 `SourceHanSerifCN-Heavyall`**，再退到 `SourceHanSerifCN-Heavy`，最后才是 `serif` → 然后才轮到 `baseSplit` / `notdef`。
+
+直接把 `baseFontFamilyName` 改成这样：
+
+```js
+let baseFontFamilyName =
+  'SourceHanSerifCN-Heavyall,' +
+  'SourceHanSerifCN-Heavy,' +
+  'serif,' +
+  'baseSplit,' +
+  'notdef';
+```
+
+保持这行不动：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+```
+
+> 这样最终的字体串会是：  
+> `EVAMatisseClassic, SourceHanSerifCN-Heavyall, SourceHanSerifCN-Heavy, serif, baseSplit, notdef`
+
+逻辑就变成：
+
+1.  能用 `EVAMatisseClassic` 的字 → 用 EVA 字体（你想要的标题效果）。
+
+2.  EVA 没有的字（比如「钙」） → 去 `SourceHanSerifCN-Heavyall` 里找，那里我们已经确认有「钙」。
+
+3.  再不行才会去 `serif` / `baseSplit` / `notdef`。
+
+* * *
+
+## 3. 如果还不行，用“强制只用思源宋体”做一次测试
+
+为了快速确认是不是 Canvas 没用上字体，你可以临时把那行改得更极端一点：
+
+```js
+ctx.font = `${fontWeight} ${fontSize}px SourceHanSerifCN-Heavyall`;
+```
+
+保存 → 刷新 → 文本框里只输入一个「钙」看看：
+
+*   ✅ 如果这样能显示「钙」，就说明字体本身没问题，问题就是在之前那个字体链 / fallback 顺序上；按上面的 `baseFontFamilyName` 写法回去就行。
+
+*   ❌ 如果这样都显示不出来，基本就是：
+
+    *   字体没加载成功（Network 里 `SourceHanSerifCN-Heavyall.ttf` 404 / 报错），或者
+
+    *   页面里其实没走到你修改后的这段 JS（例如浏览器缓存了旧的 `make.js`）
+
+这两种情况你可以再检查下：
+
+*   DevTools → Network → Filter 里输入 `SourceHanSerifCN-Heavyall` 看请求是否 200；
+
+*   DevTools → Sources 里打开当前加载的 `make.js`，确认顶部 `baseFontFamilyName` 的内容就是你刚改的那一版。
+
+*   * *
+
+## 小结
+
+1. 你的字体文件本身是有「钙」的，这点没问题。
+
+2. 关键是 Canvas 的 `ctx.font` 那一串要变成类似：
+
+   ```js
+   let baseFontFamilyName =
+     'SourceHanSerifCN-Heavyall,SourceHanSerifCN-Heavy,serif,baseSplit,notdef';
+   
+   ctx.font = `${fontWeight} ${fontSize}px ${_fontFamilyName},${baseFontFamilyName}`;
+   ```
+
+3. 如果改完还是不显示，就先用：
+
+   ```js
+   ctx.font = `${fontWeight} ${fontSize}px SourceHanSerifCN-Heavyall`;
+   ```
+
+   做一次“只用思源宋体”的测试，确认到底是字体没加载，还是 fallback 链的问题。
+
+你先按上面的方案 A/测试版改一下，一般「钙」就能出来了。
+  
+The End.
