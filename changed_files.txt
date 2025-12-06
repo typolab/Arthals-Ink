@@ -1,1 +1,1 @@
-src/content/blog/paper_spaceGNN.md
+src/content/blog/log_eva_title.md
