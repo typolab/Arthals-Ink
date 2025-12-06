@@ -1,5 +1,6 @@
 ---
 import { render, type CollectionEntry } from 'astro:content'
+
 import { getBlogCollection, sortMDByDate } from 'astro-pure/server'
 import PostLayout from '@/layouts/BlogPost.astro'
 
@@ -7,16 +8,10 @@ export const prerender = true
 
 export async function getStaticPaths() {
   const posts = sortMDByDate(await getBlogCollection())
-
-  return posts.map((post) => {
-    // ✅ 从 frontmatter 里取 slug；没有就用 id
-    const slug = post.data.slug ?? post.id
-
-    return {
-      params: { id: slug },
-      props: { post, posts }
-    }
-  })
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post, posts }
+  }))
 }
 
 type Props = {
