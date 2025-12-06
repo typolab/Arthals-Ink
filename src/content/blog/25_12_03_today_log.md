@@ -1,8 +1,8 @@
 ---
 title: 2025-12-03 Today Log
 description: Record today's log
-publishDate: 
-updatedDate: 
+publishDate: '2024-07-26T16:44:14+08:00'
+updatedDate: '2025-12-06T13:36:05+08:00'
 tags:
   - Today_log
   - pubData
@@ -33,7 +33,7 @@ slug: 25_12_13_today_log
    
 ```
 这是标题格式
-    ---
+---
 title: 2025-12-03 Today Log
 description: Record today's log
 publishDate: 
