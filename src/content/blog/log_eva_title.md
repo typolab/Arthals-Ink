@@ -16,7 +16,7 @@ updatedDate: '2025-12-06T12:51:57+08:00'
 ###我经过改良后的 Github 项目：[eva-title](https://github.com/sotaify/eva-title)  
 ###Demo Server web: [Evangelion Title Card Generator](https://yys.im/eva/)  
 
-
+  
 ### 以下是修改
 ## Q: 
 
