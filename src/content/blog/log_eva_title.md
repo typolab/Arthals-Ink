@@ -10,10 +10,10 @@ publishDate: '2025-12-06T12:45:38+08:00'
 updatedDate: '2025-12-06T12:45:38+08:00'
 ---
 
-###原 GitHub 网站：[eva-title](https://github.com/itorr/eva-title)
-###原 Demo Server web: [Evangelion Title Card Generator](https://lab.magiconch.com/eva-title/)  
-由于原 Github 的项目 直接拿来是不可用的
-###我经过改良后的 Github 项目：[eva-title](https://github.com/sotaify/eva-title)
+###原 GitHub 网站：[eva-title](https://github.com/itorr/eva-title)  
+###原 Demo Server web: [Evangelion Title Card Generator](https://lab.magiconch.com/eva-title/)   
+由于原 Github 的项目 直接拿来是不可用的  
+###我经过改良后的 Github 项目：[eva-title](https://github.com/sotaify/eva-title)  
 ###Demo Server web: [Evangelion Title Card Generator](https://yys.im/eva/)  
 
 
