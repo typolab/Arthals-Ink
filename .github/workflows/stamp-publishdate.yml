@@ -34,15 +34,14 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # 这个 workflow 只需要 gray-matter（纯 JS）来改 frontmatter，不需要任何 postinstall
-      # 所以直接忽略 scripts，避免 simple-git-hooks / sharp 等安装脚本在 CI 里翻车
+      # 只需要 gray-matter（纯 JS）来改 frontmatter，不需要任何 postinstall
       - name: Install deps (ignore postinstall scripts)
         env:
           CI: true
           SKIP_SIMPLE_GIT_HOOKS: "1"
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Collect changed blog files
+      - name: Collect changed blog files (with status)
         id: changed
         shell: bash
         run: |
@@ -52,25 +51,39 @@ jobs:
           AFTER="${{ github.sha }}"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手动运行：处理所有 blog 文件
-            git ls-files 'src/content/blog/**/*.md' 'src/content/blog/**/*.mdx' > changed_files.txt || true
+            # 手动运行：处理所有 blog 文件（统一标记为 M）
+            git ls-files 'src/content/blog/**/*.md' 'src/content/blog/**/*.mdx' \
+              | awk '{print "M\t"$0}' > changed_files_status.txt || true
           else
-            # push 运行：只处理这次 push 改动的文件
             if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
               RANGE="$AFTER"
             else
               RANGE="$BEFORE..$AFTER"
             fi
 
-            git diff --name-only "$RANGE" \
-              | grep -E '^src/content/blog/.*\.(md|mdx)$' \
-              > changed_files.txt || true
+            # 输出形如：A<TAB>path 或 M<TAB>path
+            git diff --name-status "$RANGE" \
+              | grep -E '^([AM])\s+src/content/blog/.*\.(md|mdx)$' \
+              > changed_files_status.txt || true
           fi
 
-          echo "Changed files:"
-          cat changed_files.txt || true
+          echo "Changed files (status + path):"
+          cat changed_files_status.txt || true
 
-          files_json=$(node -e "const fs=require('fs'); const a=fs.existsSync('changed_files.txt')?fs.readFileSync('changed_files.txt','utf8').split(/\r?\n/).filter(Boolean):[]; console.log(JSON.stringify(a));")
+          # 转成 JSON 数组：[{status:"A"|"M", path:"..."}]
+          files_json=$(
+            node - <<'NODE'
+            const fs = require('fs');
+            const p = 'changed_files_status.txt';
+            const lines = fs.existsSync(p) ? fs.readFileSync(p,'utf8').split(/\r?\n/).filter(Boolean) : [];
+            const out = lines.map(l => {
+              const m = l.match(/^([AM])\s+(.*)$/);
+              return m ? { status: m[1], path: m[2] } : null;
+            }).filter(Boolean);
+            process.stdout.write(JSON.stringify(out));
+NODE
+          )
+
           echo "files=$files_json" >> "$GITHUB_OUTPUT"
 
       - name: Stamp dates (inline, BJ)
@@ -86,7 +99,7 @@ jobs:
           import { execFileSync } from "node:child_process";
           import matter from "gray-matter";
 
-          const files = JSON.parse(process.env.CHANGED_FILES_JSON || "[]");
+          const items = JSON.parse(process.env.CHANGED_FILES_JSON || "[]");
 
           const BOT_NAME = "github-actions[bot]";
           const BOT_EMAIL_RE = /github-actions\[bot\]@users\.noreply\.github\.com/i;
@@ -148,14 +161,16 @@ jobs:
             return true;
           }
 
-          function gitFirstCommitISO(file) {
-            const out = sh("git", ["log", "--follow", "--diff-filter=A", "--format=%cI|%an|%ae", "--", file]);
+          // ✅ publishDate 取“当前路径第一次出现”的创建时间：不要用 --follow（避免 rename/复制串历史）
+          function gitFirstCommitISO_NoFollow(file) {
+            const out = sh("git", ["log", "--diff-filter=A", "--format=%cI|%an|%ae", "--", file]);
             if (!out) return "";
             const lines = out.split("\n").filter(Boolean);
             return (lines[lines.length - 1]?.split("|")[0]) || "";
           }
 
-          function gitLastHumanCommitISO(file) {
+          // updatedDate 仍然 follow：追踪改名历史是合理的（表示内容最后更新）
+          function gitLastHumanCommitISO_Follow(file) {
             const out = sh("git", ["log", "--follow", "--format=%cI|%an|%ae", "--", file]);
             if (!out) return "";
             const lines = out.split("\n").filter(Boolean);
@@ -167,20 +182,22 @@ jobs:
               if (email && BOT_EMAIL_RE.test(email)) continue;
               return iso;
             }
-            // fallback：没有 human 提交就用最后一次任何提交
             return lines[0]?.split("|")[0] || "";
           }
 
           let changed = 0;
 
-          for (const file of files) {
+          for (const item of items) {
+            const file = item.path;
+            const status = item.status; // "A" | "M"
+
             const raw = await fs.readFile(file, "utf8");
             const rawNorm = normalizeTopDelims(ltrimBlankLines(stripBOM(raw))).replace(/\r\n/g, "\n");
 
             const { data, content } = parseRobust(raw);
 
-            const firstISO = gitFirstCommitISO(file);
-            const lastISO  = gitLastHumanCommitISO(file);
+            const firstISO = gitFirstCommitISO_NoFollow(file);
+            const lastISO  = gitLastHumanCommitISO_Follow(file);
 
             if (!firstISO || !lastISO) {
               console.log(`[SKIP] no git history: ${file}`);
@@ -190,13 +207,17 @@ jobs:
             const firstBJ = toBJ(firstISO);
             const lastBJ  = toBJ(lastISO);
 
-            // publishDate：只在缺失/空时写入（固定）
-            if (!hasNonEmpty(data.publishDate)) data.publishDate = firstBJ;
+            // ✅ 新增文件：无条件固定 publishDate（防止沿用旧文章/复制的 publishDate）
+            if (status === "A") {
+              data.publishDate = firstBJ;
+            } else {
+              // 修改文件：publishDate 只在缺失/空时写入（固定）
+              if (!hasNonEmpty(data.publishDate)) data.publishDate = firstBJ;
+            }
 
             // updatedDate：每次同步为最后一次 human commit 时间
             data.updatedDate = lastBJ;
 
-            // 输出为“单一 frontmatter”
             const out = matter.stringify(content, data, { language: "yaml" });
             const finalText = normalizeTopDelims(ltrimBlankLines(stripBOM(out))).replace(/\r\n/g, "\n");
 
@@ -204,6 +225,7 @@ jobs:
               await fs.writeFile(file, finalText, "utf8");
               changed++;
               console.log(`[OK]   ${file}`);
+              console.log(`       status=${status}`);
               console.log(`       publishDate=${data.publishDate}`);
               console.log(`       updatedDate=${data.updatedDate}`);
             } else {
