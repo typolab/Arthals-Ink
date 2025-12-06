@@ -1,5 +1,5 @@
 ---
-title: eva title log
+title: eva_title_log
 description: Deploying an EVA title generator
 tags:
   - deploy
